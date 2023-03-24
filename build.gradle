@@ -5,10 +5,6 @@ buildscript {
         maven { url = 'https://maven.minecraftforge.net' }
         maven { url = 'https://maven.parchmentmc.org' }
     }
-
-    dependencies {
-        classpath 'org.parchmentmc:librarian:1.+'
-    }
 }
 
 plugins {
