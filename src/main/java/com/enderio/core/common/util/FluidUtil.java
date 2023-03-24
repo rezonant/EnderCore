@@ -7,33 +7,28 @@ import javax.annotation.Nullable;
 
 import com.enderio.core.api.common.util.ITankAccess;
 import com.enderio.core.common.util.NNList.Callback;
-
-import net.minecraft.block.Block;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Items;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.material.Fluid;
 import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.CapabilityInject;
+import net.minecraftforge.common.capabilities.CapabilityManager;
+import net.minecraftforge.common.capabilities.CapabilityToken;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
-import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.FluidTank;
 import net.minecraftforge.fluids.IFluidBlock;
+import net.minecraftforge.fluids.IFluidTank;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidHandlerItem;
-import net.minecraftforge.fluids.capability.IFluidTankProperties;
 
 public class FluidUtil {
-
-  @CapabilityInject(IFluidHandler.class)
-  private static final Capability<IFluidHandler> FLUID_HANDLER = null;
-  
-  @CapabilityInject(IFluidHandlerItem.class)
-  private static final Capability<IFluidHandlerItem> FLUID_ITEM_HANDLER = null;
+  private static final Capability<IFluidHandler> FLUID_HANDLER = CapabilityManager.get(new CapabilityToken<>(){});
+  private static final Capability<IFluidHandlerItem> FLUID_ITEM_HANDLER = CapabilityManager.get(new CapabilityToken<>(){});
 
   // TODO: Mod BC see if this is still needed once BC updates. Might work with
   // caps.
@@ -57,26 +52,26 @@ public class FluidUtil {
     return NullHelper.notnullF(FLUID_ITEM_HANDLER, "IFluidHandlerItem capability is missing");
   }
 
-  public static @Nullable IFluidHandler getFluidHandlerCapability(@Nullable ICapabilityProvider provider, @Nullable EnumFacing side) {
-    if (provider != null && provider.hasCapability(getFluidCapability(), side)) {
-      return provider.getCapability(getFluidCapability(), side);
+  public static @Nullable IFluidHandler getFluidHandlerCapability(@Nullable ICapabilityProvider provider, @Nullable Direction side) {
+    if (provider != null && provider.getCapability(getFluidCapability(), side).isPresent()) {
+      return provider.getCapability(getFluidCapability(), side).orElse(null);
     }
     return null;
   }
 
   public static @Nullable IFluidHandlerItem getFluidHandlerCapability(@Nonnull ItemStack stack) {
-    if (stack.hasCapability(getFluidItemCapability(), null)) {
-      return stack.getCapability(getFluidItemCapability(), null);
+    if (stack.getCapability(getFluidItemCapability(), null).isPresent()) {
+      return stack.getCapability(getFluidItemCapability(), null).orElse(null);
     }
     return null;
   }
 
-  public static EnumMap<EnumFacing, IFluidHandler> getNeighbouringFluidHandlers(@Nonnull final World worldObj, @Nonnull final BlockPos location) {
-    final EnumMap<EnumFacing, IFluidHandler> res = new EnumMap<EnumFacing, IFluidHandler>(EnumFacing.class);
-    NNList.FACING.apply(new Callback<EnumFacing>() {
+  public static EnumMap<Direction, IFluidHandler> getNeighbouringFluidHandlers(@Nonnull final Level worldObj, @Nonnull final BlockPos location) {
+    final EnumMap<Direction, IFluidHandler> res = new EnumMap<Direction, IFluidHandler>(Direction.class);
+    NNList.FACING.apply(new Callback<Direction>() {
       @Override
-      public void apply(@Nonnull EnumFacing dir) {
-        IFluidHandler fh = getFluidHandler(worldObj, location.offset(dir), dir.getOpposite());
+      public void apply(@Nonnull Direction dir) {
+        IFluidHandler fh = getFluidHandler(worldObj, location.relative(dir), dir.getOpposite());
         if (fh != null) {
           res.put(dir, fh);
         }
@@ -85,8 +80,8 @@ public class FluidUtil {
     return res;
   }
 
-  static @Nullable IFluidHandler getFluidHandler(@Nonnull World worldObj, @Nonnull BlockPos location, @Nullable EnumFacing side) {
-    return getFluidHandlerCapability(worldObj.getTileEntity(location), side);
+  static @Nullable IFluidHandler getFluidHandler(@Nonnull Level worldObj, @Nonnull BlockPos location, @Nullable Direction side) {
+    return getFluidHandlerCapability(worldObj.getBlockEntity(location), side);
   }
 
   public static FluidStack getFluidTypeFromItem(@Nonnull ItemStack stack) {
@@ -98,10 +93,11 @@ public class FluidUtil {
     copy.setCount(1);
     IFluidHandlerItem handler = getFluidHandlerCapability(copy);
     if (handler != null) {
-      return handler.drain(Fluid.BUCKET_VOLUME, false);
+      return handler.drain(1000, IFluidHandler.FluidAction.EXECUTE);
     }
-    if (Block.getBlockFromItem(copy.getItem()) instanceof IFluidBlock) {
-      Fluid fluid = ((IFluidBlock) Block.getBlockFromItem(copy.getItem())).getFluid();
+
+    if (Block.byItem(copy.getItem()) instanceof IFluidBlock) {
+      Fluid fluid = ((IFluidBlock) Block.byItem(copy.getItem())).getFluid();
       if (fluid != null) {
         return new FluidStack(fluid, 1000);
       }
@@ -113,9 +109,9 @@ public class FluidUtil {
     return getFluidHandlerCapability(stack) != null;
   }
 
-  public static boolean isFluidContainer(@Nonnull ICapabilityProvider provider, @Nullable EnumFacing side) {
+  public static boolean isFluidContainer(@Nonnull ICapabilityProvider provider, @Nullable Direction side) {
     if (provider instanceof ItemStack) {
-      Log.warn("isFluidContainer(ICapabilityProvider, EnumFacing) is not for ItemStacks");
+      Log.warn("isFluidContainer(ICapabilityProvider, Direction) is not for ItemStacks");
       return isFluidContainer((ItemStack) provider);
     }
     return getFluidHandlerCapability(provider, side) != null;
@@ -126,22 +122,20 @@ public class FluidUtil {
     if (handler == null) {
       return false;
     }
-    IFluidTankProperties[] props = handler.getTankProperties();
-    if (props == null) {
-      return false;
-    }
-    for (IFluidTankProperties tank : props) {
-      int cap = tank.getCapacity();
-      FluidStack contents = tank.getContents();
-      if (cap >= 0 && (contents == null || contents.amount < cap)) {
+
+    for (int i = 0; i < handler.getTanks(); ++i) {
+      int cap = handler.getTankCapacity(i);
+      FluidStack contents = handler.getFluidInTank(i);
+      if (cap >= 0 && (contents == null || contents.getAmount() < cap)) {
         return true;
       }
     }
+
     return false;
   }
 
   public static @Nonnull FluidAndStackResult tryFillContainer(@Nonnull ItemStack target, @Nullable FluidStack source) {
-    if (target.isEmpty() || source == null || source.getFluid() == null || source.amount <= 0) {
+    if (target.isEmpty() || source == null || source.getFluid() == null || source.getAmount() <= 0) {
       return new FluidAndStackResult(ItemStack.EMPTY, null, target, source);
     }
 
@@ -152,22 +146,22 @@ public class FluidUtil {
       return new FluidAndStackResult(ItemStack.EMPTY, null, target, source);
     }
 
-    int filledAmount = handler.fill(source.copy(), true);
-    if (filledAmount <= 0 || filledAmount > source.amount) {
+    int filledAmount = handler.fill(source.copy(), IFluidHandler.FluidAction.EXECUTE);
+    if (filledAmount <= 0 || filledAmount > source.getAmount()) {
       return new FluidAndStackResult(ItemStack.EMPTY, null, target, source);
     }
 
     filledStack = handler.getContainer();
 
     FluidStack resultFluid = source.copy();
-    resultFluid.amount = filledAmount;
+    resultFluid.setAmount(filledAmount);
 
     ItemStack remainderStack = target.copy();
     remainderStack.shrink(1);
 
     FluidStack remainderFluid = source.copy();
-    remainderFluid.amount -= filledAmount;
-    if (remainderFluid.amount <= 0) {
+    remainderFluid.setAmount(remainderFluid.getAmount() - filledAmount);
+    if (remainderFluid.getAmount() <= 0) {
       remainderFluid = null;
     }
 
@@ -187,17 +181,17 @@ public class FluidUtil {
       return new FluidAndStackResult(null, ItemStack.EMPTY, target, source);
     }
 
-    int maxDrain = capacity - (target != null ? target.amount : 0);
+    int maxDrain = capacity - (target != null ? target.getAmount() : 0);
     FluidStack drained;
     if (target != null) {
       FluidStack available = target.copy();
-      available.amount = maxDrain;
-      drained = handler.drain(available, true);
+      available.setAmount(maxDrain);
+      drained = handler.drain(available, IFluidHandler.FluidAction.SIMULATE);
     } else {
-      drained = handler.drain(maxDrain, true);
+      drained = handler.drain(maxDrain, IFluidHandler.FluidAction.SIMULATE);
     }
 
-    if (drained == null || drained.amount <= 0 || drained.amount > maxDrain) {
+    if (drained == null || drained.getAmount() <= 0 || drained.getAmount() > maxDrain) {
       return new FluidAndStackResult(ItemStack.EMPTY, null, source, target);
     }
 
@@ -207,7 +201,7 @@ public class FluidUtil {
     remainderStack.shrink(1);
 
     FluidStack remainderFluid = target != null ? target.copy() : new FluidStack(drained, 0);
-    remainderFluid.amount += drained.amount;
+    remainderFluid.setAmount(remainderFluid.getAmount() + drained.getAmount());
 
     return new FluidAndStackResult(emptiedStack, drained, remainderStack, remainderFluid);
   }
@@ -226,7 +220,7 @@ public class FluidUtil {
     if (contentType == null) {
       return result;
     }
-    FluidTank targetTank = tank.getInputTank(contentType);
+    IFluidTank targetTank = tank.getInputTank(contentType);
     if (targetTank == null) {
       return result;
     }
@@ -255,40 +249,40 @@ public class FluidUtil {
    * @param tank
    * @return true if a container was filled, false otherwise
    */
-  public static boolean fillPlayerHandItemFromInternalTank(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull EntityPlayer entityPlayer,
-      @Nonnull EnumHand hand, @Nonnull ITankAccess tank) {
+  public static boolean fillPlayerHandItemFromInternalTank(@Nonnull Level world, @Nonnull BlockPos pos, @Nonnull Player entityPlayer,
+      @Nonnull InteractionHand hand, @Nonnull ITankAccess tank) {
 
-    ItemStack heldItem = entityPlayer.getHeldItem(hand);
-    boolean doFill = !(entityPlayer.capabilities.isCreativeMode && heldItem.getItem() == Items.BUCKET);
+    ItemStack heldItem = entityPlayer.getItemInHand(hand);
+    boolean doFill = !(entityPlayer.isCreative() && heldItem.getItem() == Items.BUCKET);
 
-    for (FluidTank subTank : tank.getOutputTanks()) {
-      FluidAndStackResult fill = tryFillContainer(entityPlayer.getHeldItem(hand), subTank.getFluid());
+    for (IFluidTank subTank : tank.getOutputTanks()) {
+      FluidAndStackResult fill = tryFillContainer(entityPlayer.getItemInHand(hand), subTank.getFluid());
       if (fill.result.fluidStack != null) {
 
-        subTank.setFluid(fill.remainder.fluidStack);
+        subTank.fill(fill.remainder.fluidStack, IFluidHandler.FluidAction.EXECUTE);
         tank.setTanksDirty();
         if (doFill) {
           if (fill.remainder.itemStack.isEmpty()) {
             // The input item was used up. We can simply replace it with the output item and be done.
-            entityPlayer.setHeldItem(hand, fill.result.itemStack);
+            entityPlayer.setItemInHand(hand, fill.result.itemStack);
             return true;
           } else {
-            entityPlayer.setHeldItem(hand, fill.remainder.itemStack);
+            entityPlayer.setItemInHand(hand, fill.remainder.itemStack);
             if (fill.result.itemStack.isEmpty()) {
               // We got no result item. Weird case, but whatever... (maybe an item that takes liquid XP and puts it into the player's XP bar and is used up?)
               return true;
             }
           }
 
-          if (entityPlayer.inventory.addItemStackToInventory(fill.result.itemStack)) {
+          if (entityPlayer.getInventory().add(fill.result.itemStack)) {
             // will change the itemstack's count on partial inserts
             return true;
           }
 
-          if (!world.isRemote) {
-            double x0 = (pos.getX() + 0.5D + entityPlayer.posX) / 2.0D;
-            double y0 = (pos.getY() + 0.5D + entityPlayer.posY + 0.5D) / 2.0D;
-            double z0 = (pos.getZ() + 0.5D + entityPlayer.posZ) / 2.0D;
+          if (!world.isClientSide) {
+            double x0 = (pos.getX() + 0.5D + entityPlayer.getX()) / 2.0D;
+            double y0 = (pos.getY() + 0.5D + entityPlayer.getY() + 0.5D) / 2.0D;
+            double z0 = (pos.getZ() + 0.5D + entityPlayer.getZ()) / 2.0D;
             Util.dropItems(world, fill.result.itemStack, x0, y0, z0, true);
           }
         }
@@ -299,41 +293,41 @@ public class FluidUtil {
     return false;
   }
 
-  public static boolean fillInternalTankFromPlayerHandItem(@Nonnull World world, @Nonnull BlockPos pos, @Nonnull EntityPlayer entityPlayer,
-      @Nonnull EnumHand hand, @Nonnull ITankAccess tank) {
-    FluidAndStackResult fill = tryDrainContainer(entityPlayer.getHeldItem(hand), tank);
+  public static boolean fillInternalTankFromPlayerHandItem(@Nonnull Level world, @Nonnull BlockPos pos, @Nonnull Player player,
+                                                           @Nonnull InteractionHand hand, @Nonnull ITankAccess tank) {
+    FluidAndStackResult fill = tryDrainContainer(player.getItemInHand(hand), tank);
     if (fill.result.fluidStack == null) {
       return false;
     }
 
-    final FluidTank inputTank = tank.getInputTank(fill.result.fluidStack);
+    final IFluidTank inputTank = tank.getInputTank(fill.result.fluidStack);
     if (inputTank == null) {
       return false;
     }
-    inputTank.setFluid(fill.remainder.fluidStack);
+    inputTank.fill(fill.remainder.fluidStack, IFluidHandler.FluidAction.EXECUTE);
     tank.setTanksDirty();
 
-    if (!entityPlayer.capabilities.isCreativeMode) {
+    if (!player.isCreative()) {
       if (fill.remainder.itemStack.isEmpty()) {
-        entityPlayer.setHeldItem(hand, fill.result.itemStack);
+        player.setItemInHand(hand, fill.result.itemStack);
         return true;
       } else {
-        entityPlayer.setHeldItem(hand, fill.remainder.itemStack);
+        player.setItemInHand(hand, fill.remainder.itemStack);
       }
 
       if (fill.result.itemStack.isEmpty()) {
         return true;
       }
 
-      if (entityPlayer.inventory.addItemStackToInventory(fill.result.itemStack)) {
+      if (player.getInventory().add(fill.result.itemStack)) {
         // will change the itemstack's count on partial inserts
         return true;
       }
 
-      if (!world.isRemote) {
-        double x0 = (pos.getX() + 0.5D + entityPlayer.posX) / 2.0D;
-        double y0 = (pos.getY() + 0.5D + entityPlayer.posY + 0.5D) / 2.0D;
-        double z0 = (pos.getZ() + 0.5D + entityPlayer.posZ) / 2.0D;
+      if (!world.isClientSide) {
+        double x0 = (pos.getX() + 0.5D + player.getX()) / 2.0D;
+        double y0 = (pos.getY() + 0.5D + player.getY() + 0.5D) / 2.0D;
+        double z0 = (pos.getZ() + 0.5D + player.getZ()) / 2.0D;
         Util.dropItems(world, fill.result.itemStack, x0, y0, z0, true);
       }
     }
@@ -385,7 +379,7 @@ public class FluidUtil {
     if (fluid2 == null) {
       return false;
     }
-    return fluid == fluid2 || fluid.getName().equals(fluid2.getName());
+    return fluid == fluid2 || fluid.isSame(fluid2);
   }
 
 }

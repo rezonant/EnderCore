@@ -4,11 +4,10 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.enderio.core.client.gui.GuiContainerBase;
-import com.enderio.core.common.TileEntityBase;
+import com.enderio.core.common.BlockEntityBase;
 import com.enderio.core.common.network.EnderPacketHandler;
 import com.enderio.core.common.network.PacketGhostSlot;
-
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.ItemStack;
 
 public abstract class GhostSlot {
 
@@ -27,7 +26,7 @@ public abstract class GhostSlot {
   }
 
   @Nullable
-  private TileEntityBase te = null;
+  private BlockEntityBase te = null;
   private int slot = -1;
   private int x;
   private int y;
@@ -41,7 +40,7 @@ public abstract class GhostSlot {
   private boolean drawStdTooltip = true;
   private boolean drawFakeHover = true;
 
-  public boolean isMouseOver(int mx, int my) {
+  public boolean isMouseOver(double mx, double my) {
     return mx >= getX() && mx < (getX() + 16) && my >= getY() && my < (getY() + 16);
   }
 
@@ -136,11 +135,11 @@ public abstract class GhostSlot {
     this.updateServer = updateServer;
   }
 
-  public TileEntityBase getTe() {
+  public BlockEntityBase getTe() {
     return te;
   }
 
-  public void setTe(TileEntityBase te) {
+  public void setTe(BlockEntityBase te) {
     this.te = te;
   }
 
@@ -161,10 +160,11 @@ public abstract class GhostSlot {
   }
 
   public boolean drawGhostSlotToolTip(@Nonnull GuiContainerBase gui, int mouseX, int mouseY) {
-    if (drawStdTooltip && gui.mc.player.inventory.getItemStack().isEmpty()) {
+    if (drawStdTooltip && gui.getMinecraft().player.getMainHandItem().isEmpty()) {
       ItemStack stack = getStack();
       if (!stack.isEmpty()) {
-        gui.renderToolTip(stack, mouseX, mouseY);
+        // TODO
+        //gui.renderTooltip(stack, mouseX, mouseY);
         return true;
       }
     }

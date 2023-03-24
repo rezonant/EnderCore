@@ -12,9 +12,9 @@ public class MultiIconButton extends IconButton {
   private final @Nonnull IWidgetIcon pressed;
   private final @Nonnull IWidgetIcon hover;
 
-  public MultiIconButton(@Nonnull IGuiScreen gui, int id, int x, int y, @Nonnull IWidgetIcon unpressed, @Nonnull IWidgetIcon pressed,
-      @Nonnull IWidgetIcon hover) {
-    super(gui, id, x, y, null);
+  public MultiIconButton(@Nonnull IGuiScreen gui, int x, int y, @Nonnull IWidgetIcon unpressed, @Nonnull IWidgetIcon pressed,
+                         @Nonnull IWidgetIcon hover) {
+    super(gui, x, y, (button) -> {}, null);
     this.unpressed = unpressed;
     this.pressed = pressed;
     this.hover = hover;
@@ -33,18 +33,18 @@ public class MultiIconButton extends IconButton {
   }
 
   public static @Nonnull MultiIconButton createRightArrowButton(@Nonnull IGuiScreen gui, int id, int x, int y) {
-    return new MultiIconButton(gui, id, x, y, EnderWidget.RIGHT_ARROW, EnderWidget.RIGHT_ARROW_PRESSED, EnderWidget.RIGHT_ARROW_HOVER);
+    return new MultiIconButton(gui, x, y, EnderWidget.RIGHT_ARROW, EnderWidget.RIGHT_ARROW_PRESSED, EnderWidget.RIGHT_ARROW_HOVER);
   }
 
   public static @Nonnull MultiIconButton createLeftArrowButton(@Nonnull IGuiScreen gui, int id, int x, int y) {
-    return new MultiIconButton(gui, id, x, y, EnderWidget.LEFT_ARROW, EnderWidget.LEFT_ARROW_PRESSED, EnderWidget.LEFT_ARROW_HOVER);
+    return new MultiIconButton(gui, x, y, EnderWidget.LEFT_ARROW, EnderWidget.LEFT_ARROW_PRESSED, EnderWidget.LEFT_ARROW_HOVER);
   }
 
   public static @Nonnull MultiIconButton createAddButton(@Nonnull IGuiScreen gui, int id, int x, int y) {
-    return new MultiIconButton(gui, id, x, y, EnderWidget.ADD_BUT, EnderWidget.ADD_BUT_PRESSED, EnderWidget.ADD_BUT_HOVER);
+    return new MultiIconButton(gui, x, y, EnderWidget.ADD_BUT, EnderWidget.ADD_BUT_PRESSED, EnderWidget.ADD_BUT_HOVER);
   }
 
   public static @Nonnull MultiIconButton createMinusButton(@Nonnull IGuiScreen gui, int id, int x, int y) {
-    return new MultiIconButton(gui, id, x, y, EnderWidget.MINUS_BUT, EnderWidget.MINUS_BUT_PRESSED, EnderWidget.MINUS_BUT_HOVER);
+    return new MultiIconButton(gui, x, y, EnderWidget.MINUS_BUT, EnderWidget.MINUS_BUT_PRESSED, EnderWidget.MINUS_BUT_HOVER);
   }
 }

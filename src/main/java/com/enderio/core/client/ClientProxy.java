@@ -7,8 +7,8 @@ import com.enderio.core.common.CommonProxy;
 import com.enderio.core.common.util.Scheduler;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.world.World;
-import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraft.world.level.Level;
+import net.minecraftforge.fml.event.lifecycle.InterModEnqueueEvent;
 
 public class ClientProxy extends CommonProxy {
 
@@ -21,8 +21,8 @@ public class ClientProxy extends CommonProxy {
   }
 
   @Override
-  public @Nonnull World getClientWorld() {
-    return Minecraft.getMinecraft().world;
+  public @Nonnull Level getClientWorld() {
+    return Minecraft.getInstance().level;
   }
 
   @Override
@@ -33,7 +33,7 @@ public class ClientProxy extends CommonProxy {
   }
 
   @Override
-  public void onPreInit(@Nonnull FMLPreInitializationEvent event) {
+  public void onInterModEnqueue(@Nonnull InterModEnqueueEvent event) {
     IconUtil.instance.init();
   }
 

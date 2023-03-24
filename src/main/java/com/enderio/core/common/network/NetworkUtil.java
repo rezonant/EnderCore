@@ -7,44 +7,45 @@ import java.io.IOException;
 import javax.annotation.Nonnull;
 
 import io.netty.buffer.ByteBuf;
-import net.minecraft.nbt.CompressedStreamTools;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtIo;
 
 /**
  * Created by CrazyPants on 27/02/14.
  */
 public class NetworkUtil {
 
-  public static @Nonnull NBTTagCompound readNBTTagCompound(ByteBuf dataIn) {
+  public static @Nonnull CompoundTag readCompoundTag(ByteBuf dataIn) {
     try {
       short size = dataIn.readShort();
       if (size < 0) {
-        return new NBTTagCompound();
+        return new CompoundTag();
       } else {
         byte[] buffer = new byte[size];
         dataIn.readBytes(buffer);
-        return CompressedStreamTools.readCompressed(new ByteArrayInputStream(buffer));
+        return NbtIo.readCompressed(new ByteArrayInputStream(buffer));
       }
     } catch (IOException e) {
-      FMLCommonHandler.instance().raiseException(e, "Custom Packet", true);
-      return new NBTTagCompound();
+      throw new RuntimeException("Custom Packet");
+      // TODO // FMLCommonHandler.instance().raiseException(e, "Custom Packet", true);
+      //return new CompoundTag();
     }
   }
 
-  public static void writeNBTTagCompound(NBTTagCompound compound, ByteBuf dataout) {
+  public static void writeCompoundTag(CompoundTag compound, ByteBuf dataout) {
     try {
       if (compound == null) {
         dataout.writeShort(-1);
       } else {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        CompressedStreamTools.writeCompressed(compound, baos);
+        NbtIo.writeCompressed(compound, baos);
         byte[] buf = baos.toByteArray();
         dataout.writeShort((short) buf.length);
         dataout.writeBytes(buf);
       }
     } catch (IOException e) {
-      FMLCommonHandler.instance().raiseException(e, "PacketUtil.readTileEntityPacket.writeNBTTagCompound", true);
+      throw new RuntimeException("PacketUtil.readTileEntityPacket.writeNBTTagCompound");
+      // TODO // FMLCommonHandler.instance().raiseException(e, "PacketUtil.readTileEntityPacket.writeNBTTagCompound", true);
     }
   }
 

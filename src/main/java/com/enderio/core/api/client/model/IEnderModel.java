@@ -1,6 +1,6 @@
 package com.enderio.core.api.client.model;
 
-import net.minecraft.client.model.ModelRenderer;
+import net.minecraft.client.renderer.block.ModelBlockRenderer;
 
 /**
  * To be used on techne-style box models
@@ -24,5 +24,5 @@ public interface IEnderModel {
    * @param y
    * @param z
    */
-  public void setRotation(ModelRenderer model, float x, float y, float z);
+  public void setRotation(ModelBlockRenderer model, float x, float y, float z);
 }

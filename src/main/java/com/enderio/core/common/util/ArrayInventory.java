@@ -2,13 +2,11 @@ package com.enderio.core.common.util;
 
 import javax.annotation.Nonnull;
 
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TextComponentString;
+import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.items.IItemHandler;
+import org.jetbrains.annotations.NotNull;
 
-public class ArrayInventory implements IInventory {
+public class ArrayInventory implements IItemHandler {
 
   protected final @Nonnull ItemStack[] items;
 
@@ -21,7 +19,7 @@ public class ArrayInventory implements IInventory {
   }
 
   @Override
-  public int getSizeInventory() {
+  public int getSlots() {
     return items.length;
   }
 
@@ -32,96 +30,59 @@ public class ArrayInventory implements IInventory {
   }
 
   @Override
-  public @Nonnull ItemStack decrStackSize(int slot, int amount) {
-    return Util.decrStackSize(this, slot, amount);
+  public int getSlotLimit(int slot) {
+    if (slot < 0 || slot >= items.length)
+      return 0;
+
+    if (items[slot].isEmpty())
+      return 64;
+
+    return items[slot].getItem().getMaxStackSize();
   }
 
   @Override
-  public void setInventorySlotContents(int slot, @Nonnull ItemStack stack) {
-    items[slot] = stack;
-    markDirty();
-  }
-
-  @Override
-  public int getInventoryStackLimit() {
-    return 64;
-  }
-
-  @Override
-  public boolean isUsableByPlayer(@Nonnull EntityPlayer var1) {
-    return true;
-  }
-
-  @Override
-  public boolean isItemValidForSlot(int i, @Nonnull ItemStack itemstack) {
-    return true;
-  }
-
-  @Override
-  public void markDirty() {
-
-  }
-
-  @Override
-  public @Nonnull String getName() {
-    return "ArrayInventory";
-  }
-
-  @Override
-  public boolean hasCustomName() {
+  public boolean isItemValid(int slot, @NotNull ItemStack stack) {
     return false;
   }
 
   @Override
-  public @Nonnull ITextComponent getDisplayName() {
-    return new TextComponentString(getName());
-  }
+  public @Nonnull ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
+    if (slot < 0 || slot >= items.length)
+      return ItemStack.EMPTY;
 
-  @Override
-  public @Nonnull ItemStack removeStackFromSlot(int index) {
-    ItemStack res = items[index];
-    items[index] = ItemStack.EMPTY;
-    return res != null ? res : ItemStack.EMPTY;
-  }
+    var existingStack = this.items[slot];
 
-  @Override
-  public void openInventory(@Nonnull EntityPlayer player) {
-  }
+    stack = stack.copy();
 
-  @Override
-  public void closeInventory(@Nonnull EntityPlayer player) {
-  }
-
-  @Override
-  public int getField(int id) {
-    return 0;
-  }
-
-  @Override
-  public void setField(int id, int value) {
-  }
-
-  @Override
-  public int getFieldCount() {
-    return 0;
-  }
-
-  @Override
-  public void clear() {
-    for (int i = 0; i < items.length; i++) {
-      items[i] = ItemStack.EMPTY;
+    if (simulate) {
+      existingStack = stack.copy();
     }
 
+    if (existingStack.getCount() == 0) {
+      this.items[slot] = stack;
+      return ItemStack.EMPTY;
+    } else {
+      if (!ItemUtil.areStackMergable(existingStack, stack))
+        return stack;
+
+      var maxStackSize = existingStack.getItem().getMaxStackSize(existingStack);
+      var takeable = Math.min(maxStackSize - existingStack.getCount(), existingStack.getCount());
+
+      existingStack.setCount(existingStack.getCount() + takeable);
+      stack.split(takeable);
+
+      return stack;
+    }
   }
 
   @Override
-  public boolean isEmpty() {
-    for (ItemStack itemstack : items) {
-      if (itemstack != null && !itemstack.isEmpty()) {
-        return false;
-      }
-    }
-    return true;
-  }
+  public @Nonnull ItemStack extractItem(int slot, int amount, boolean simulate) {
+    if (slot < 0 || slot >= items.length)
+      return ItemStack.EMPTY;
 
+    var stack = this.items[slot];
+    if (simulate)
+        stack = stack.copy();
+    return stack.split(amount);
+  }
 }

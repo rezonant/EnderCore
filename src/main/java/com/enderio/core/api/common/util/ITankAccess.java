@@ -6,7 +6,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.FluidTank;
+import net.minecraftforge.fluids.IFluidTank;
 
 public interface ITankAccess {
 
@@ -19,7 +19,7 @@ public interface ITankAccess {
    *         no tank can take the fluid, returns null.
    */
   @Nullable
-  FluidTank getInputTank(FluidStack forFluidType);
+  IFluidTank getInputTank(FluidStack forFluidType);
 
   /**
    * Get tank(s) to remove liquid from.
@@ -27,7 +27,7 @@ public interface ITankAccess {
    * @return Tank that can be drained. Tanks are returned in order or priority. If there's no tank, an empty array is returned.
    */
   @Nonnull
-  FluidTank[] getOutputTanks();
+  IFluidTank[] getOutputTanks();
 
   /**
    * Will be called after a tank that was returned by one of the other methods was manipulated.

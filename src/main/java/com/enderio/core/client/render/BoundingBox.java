@@ -12,13 +12,13 @@ import com.enderio.core.common.vecmath.Vector3d;
 import com.enderio.core.common.vecmath.Vector3f;
 import com.enderio.core.common.vecmath.Vertex;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
-public final class BoundingBox extends AxisAlignedBB {
+public final class BoundingBox extends AABB {
 
   public static final @Nonnull BoundingBox UNIT_CUBE = new BoundingBox(0, 0, 0, 1, 1, 1);
 
@@ -26,7 +26,7 @@ public final class BoundingBox extends AxisAlignedBB {
     super(pos1, pos2);
   }
 
-  public BoundingBox(@Nonnull AxisAlignedBB bb) {
+  public BoundingBox(@Nonnull AABB bb) {
     super(bb.minX, bb.minY, bb.minZ, bb.maxX, bb.maxY, bb.maxZ);
   }
 
@@ -63,7 +63,7 @@ public final class BoundingBox extends AxisAlignedBB {
    * Returns <code>true</code> if the given entity's location point is within the bounding box.
    */
   public boolean contains(@Nonnull Entity entity) {
-    return minX <= entity.posX && minY <= entity.posY && minZ <= entity.posZ && maxX >= entity.posX && maxY >= entity.posY && maxZ >= entity.posZ;
+    return minX <= entity.getX() && minY <= entity.getY() && minZ <= entity.getZ() && maxX >= entity.getX() && maxY >= entity.getY() && maxZ >= entity.getZ();
   }
 
   /**
@@ -72,7 +72,7 @@ public final class BoundingBox extends AxisAlignedBB {
    * Note that this checks Entity#getEntityBoundingBox.
    */
   public boolean intersects(@Nonnull Entity entity) {
-    return intersects(entity.getEntityBoundingBox());
+    return intersects(entity.getBoundingBox());
   }
 
   public boolean intersects(@Nonnull BoundingBox other) {
@@ -114,14 +114,14 @@ public final class BoundingBox extends AxisAlignedBB {
   /**
    * Returns the vertices of the corners for the specified face in counter clockwise order.
    */
-  public @Nonnull List<Vertex> getCornersWithUvForFace(@Nonnull EnumFacing face) {
+  public @Nonnull List<Vertex> getCornersWithUvForFace(@Nonnull Direction face) {
     return getCornersWithUvForFace(face, 0, 1, 0, 1);
   }
 
   /**
    * Returns the vertices of the corners for the specified face in counter clockwise order.
    */
-  public @Nonnull NNList<Vertex> getCornersWithUvForFace(@Nonnull EnumFacing face, float minU, float maxU, float minV, float maxV) {
+  public @Nonnull NNList<Vertex> getCornersWithUvForFace(@Nonnull Direction face, float minU, float maxU, float minV, float maxV) {
     NNList<Vertex> result = new NNList<Vertex>();
     switch (face) {
     case NORTH:
@@ -168,7 +168,7 @@ public final class BoundingBox extends AxisAlignedBB {
   /**
    * Returns the vertices of the corners for the specified face in counter clockwise order, starting with the top left.
    */
-  public @Nonnull List<Vector3f> getCornersForFace(@Nonnull EnumFacing face) {
+  public @Nonnull List<Vector3f> getCornersForFace(@Nonnull Direction face) {
     List<Vector3f> result = new ArrayList<Vector3f>(4);
     switch (face) {
     case NORTH:
@@ -215,7 +215,7 @@ public final class BoundingBox extends AxisAlignedBB {
   /**
    * Returns the vertices of the corners for the specified face in counter clockwise order, starting with the top left.
    */
-  public @Nonnull List<Vector3d> getCornersForFaceD(@Nonnull EnumFacing face) {
+  public @Nonnull List<Vector3d> getCornersForFaceD(@Nonnull Direction face) {
     List<Vector3d> result = new ArrayList<Vector3d>(4);
     switch (face) {
     case NORTH:
@@ -328,7 +328,7 @@ public final class BoundingBox extends AxisAlignedBB {
   }
 
   @Override
-  public @Nonnull BoundingBox expand(double x, double y, double z) {
+  public @Nonnull BoundingBox inflate(double x, double y, double z) {
     return new BoundingBox(minX - x, minY - y, minZ - z, maxX + x, maxY + y, maxZ + z);
   }
 
@@ -342,8 +342,8 @@ public final class BoundingBox extends AxisAlignedBB {
   }
 
   @Override
-  public @Nonnull Vec3d getCenter() {
-    return new Vec3d(this.minX + (this.maxX - this.minX) * 0.5D, this.minY + (this.maxY - this.minY) * 0.5D, this.minZ + (this.maxZ - this.minZ) * 0.5D);
+  public @Nonnull Vec3 getCenter() {
+    return new Vec3(this.minX + (this.maxX - this.minX) * 0.5D, this.minY + (this.maxY - this.minY) * 0.5D, this.minZ + (this.maxZ - this.minZ) * 0.5D);
   }
 
 }

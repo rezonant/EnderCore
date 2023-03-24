@@ -4,14 +4,10 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.enderio.core.common.util.NNList;
-import com.enderio.core.common.util.NNList.NNIterator;
 import com.enderio.core.common.util.stackable.IThing.Zwieback;
-
-import net.minecraft.block.Block;
-import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraftforge.oredict.OreDictionary;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 
 public class ExclusionThing implements Zwieback {
 
@@ -96,7 +92,7 @@ public class ExclusionThing implements Zwieback {
     for (IThing thing : positive) {
       result.addAll(thing.getItems());
     }
-    for (NNIterator<Item> iterator = result.iterator(); iterator.hasNext();) {
+    for (NNList.NNIterator<Item> iterator = result.iterator(); iterator.hasNext();) {
       Item x = iterator.next();
       for (IThing thing : negative) {
         if (thing.is(x)) {
@@ -113,14 +109,10 @@ public class ExclusionThing implements Zwieback {
     NNList<ItemStack> result = new NNList<>();
     for (IThing thing : positive) {
       for (ItemStack stack : thing.getItemStacks()) {
-        if (stack.getItemDamage() == OreDictionary.WILDCARD_VALUE) {
-          stack.getItem().getSubItems(CreativeTabs.SEARCH, result);
-        } else {
-          result.add(stack);
-        }
+        result.add(stack);
       }
     }
-    for (NNIterator<ItemStack> iterator = result.iterator(); iterator.hasNext();) {
+    for (NNList.NNIterator<ItemStack> iterator = result.iterator(); iterator.hasNext();) {
       ItemStack x = iterator.next();
       for (IThing thing : negative) {
         if (thing.is(x)) {
@@ -138,7 +130,7 @@ public class ExclusionThing implements Zwieback {
     for (IThing thing : positive) {
       result.addAll(thing.getBlocks());
     }
-    for (NNIterator<Block> iterator = result.iterator(); iterator.hasNext();) {
+    for (NNList.NNIterator<Block> iterator = result.iterator(); iterator.hasNext();) {
       Block x = iterator.next();
       for (IThing thing : negative) {
         if (thing.is(x)) {

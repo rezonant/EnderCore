@@ -9,11 +9,11 @@ import com.enderio.core.api.client.gui.IGuiScreen;
 import com.enderio.core.api.client.gui.IHideable;
 import com.google.common.base.Strings;
 
-import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.gui.GuiTextField;
-import net.minecraftforge.fml.relauncher.ReflectionHelper;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.network.chat.Component;
 
-public class TextFieldEnder extends GuiTextField implements IHideable {
+public class TextFieldEnder extends EditBox implements IHideable {
 
   public interface ICharFilter {
 
@@ -24,7 +24,7 @@ public class TextFieldEnder extends GuiTextField implements IHideable {
 
     @Override
     public boolean passesFilter(@Nonnull TextFieldEnder tf, char c) {
-      return Character.isDigit(c) || c == '-' && Strings.isNullOrEmpty(tf.getText());
+      return Character.isDigit(c) || c == '-' && Strings.isNullOrEmpty(tf.getValue());
     }
   };
 
@@ -48,26 +48,15 @@ public class TextFieldEnder extends GuiTextField implements IHideable {
   private int yOrigin;
   private @Nullable ICharFilter filter;
 
-  private static Field canLoseFocus;
-
-  static {
-    try {
-      canLoseFocus = ReflectionHelper.findField(GuiTextField.class, "canLoseFocus", "field_146212_n", "n");
-      canLoseFocus.setAccessible(true);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+  public TextFieldEnder(Font pFont, int pX, int pY, int pWidth, int pHeight, Component pMessage) {
+    this(pFont, pX, pY, pWidth, pHeight, pMessage, null);
   }
 
-  public TextFieldEnder(@Nonnull FontRenderer fnt, int x, int y, int width, int height) {
-    this(fnt, x, y, width, height, null);
-  }
-
-  public TextFieldEnder(@Nonnull FontRenderer fnt, int x, int y, int width, int height, @Nullable ICharFilter charFilter) {
-    super(0, fnt, x, y, width, height);
-    xOrigin = x;
-    yOrigin = y;
-    filter = charFilter;
+  public TextFieldEnder(Font pFont, int pX, int pY, int pWidth, int pHeight, Component pMessage, ICharFilter pCharFilter) {
+    super(pFont, pX, pY, pWidth, pHeight, pMessage);
+    xOrigin = pX;
+    yOrigin = pY;
+    filter = pCharFilter;
   }
 
   public void init(@Nonnull IGuiScreen gui) {
@@ -81,10 +70,10 @@ public class TextFieldEnder extends GuiTextField implements IHideable {
   }
 
   @Override
-  public boolean textboxKeyTyped(char c, int key) {
+  public boolean charTyped(char c, int key) {
     final ICharFilter filter2 = filter;
     if (filter2 == null || filter2.passesFilter(this, c) || isSpecialChar(c, key)) {
-      return super.textboxKeyTyped(c, key);
+      return super.charTyped(c, key);
     }
     return false;
   }
@@ -95,20 +84,11 @@ public class TextFieldEnder extends GuiTextField implements IHideable {
   }
 
   public boolean getCanLoseFocus() {
-    try {
-      return canLoseFocus.getBoolean(this);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+    return this.canLoseFocus;
   }
 
-  public boolean contains(int mouseX, int mouseY) {
+  public boolean contains(double mouseX, double mouseY) {
     return mouseX >= this.x && mouseX < this.x + width && mouseY >= this.y && mouseY < this.y + height;
-  }
-
-  @Override
-  public boolean isVisible() {
-    return getVisible();
   }
 
   @Override
@@ -125,7 +105,7 @@ public class TextFieldEnder extends GuiTextField implements IHideable {
   }
 
   public @Nullable Integer getInteger() {
-    String text = getText();
+    String text = getValue();
     try {
       return Integer.parseInt(text);
     } catch (Exception e) {

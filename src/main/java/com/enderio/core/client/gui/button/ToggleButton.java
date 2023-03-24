@@ -22,8 +22,8 @@ public class ToggleButton extends IconButton {
   private GuiToolTip selectedTooltip, unselectedTooltip;
   private boolean paintSelectionBorder;
 
-  public ToggleButton(@Nonnull IGuiScreen gui, int id, int x, int y, @Nonnull IWidgetIcon unselectedIcon, @Nonnull IWidgetIcon selectedIcon) {
-    super(gui, id, x, y, unselectedIcon);
+  public ToggleButton(@Nonnull IGuiScreen gui, int x, int y, OnPress onPress, @Nonnull IWidgetIcon unselectedIcon, @Nonnull IWidgetIcon selectedIcon) {
+    super(gui, x, y, onPress, unselectedIcon);
     this.unselectedIcon = unselectedIcon;
     this.selectedIcon = selectedIcon;
     selected = false;
@@ -60,14 +60,13 @@ public class ToggleButton extends IconButton {
   }
 
   @Override
-  public boolean mousePressedButton(@Nonnull Minecraft mc, int mouseX, int mouseY, int button) {
-    if (super.checkMousePress(mc, mouseX, mouseY)) {
-      if (button == 0) {
-        toggleSelected();
-        return true;
-      }
+  public boolean mouseClicked(double pMouseX, double pMouseY, int pButton) {
+    if (pButton == 0) {
+      toggleSelected();
+      return true;
     }
-    return false;
+
+    return super.mouseClicked(pMouseX, pMouseY, pButton);
   }
 
   protected boolean toggleSelected() {

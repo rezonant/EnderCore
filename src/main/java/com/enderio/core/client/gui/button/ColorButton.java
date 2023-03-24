@@ -3,20 +3,18 @@ package com.enderio.core.client.gui.button;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.*;
+import net.minecraft.util.Mth;
+import net.minecraft.world.item.DyeColor;
+import net.minecraft.world.item.DyeItem;
 import org.lwjgl.opengl.GL11;
 
 import com.enderio.core.api.client.gui.IGuiScreen;
 import com.enderio.core.client.render.ColorUtil;
-import com.enderio.core.common.util.DyeColor;
 import com.enderio.core.common.vecmath.Vector3f;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.BufferBuilder;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.item.ItemDye;
-import net.minecraft.util.math.MathHelper;
 
 public class ColorButton extends IconButton {
 
@@ -24,22 +22,21 @@ public class ColorButton extends IconButton {
 
   private @Nonnull String tooltipPrefix = "";
 
-  public ColorButton(@Nonnull IGuiScreen gui, int id, int x, int y) {
-    super(gui, id, x, y, null);
+  public ColorButton(@Nonnull IGuiScreen gui, int x, int y) {
+    super(gui, x, y, (button) -> {}, null);
   }
 
   @Override
-  public boolean mousePressedButton(@Nonnull Minecraft mc, int mouseX, int mouseY, int button) {
-    if (super.checkMousePress(mc, mouseX, mouseY)) {
-      if (button == 0) {
-        nextColor();
-        return true;
-      } else if (button == 1) {
-        prevColor();
-        return true;
-      }
+  public boolean mouseClicked(double pMouseX, double pMouseY, int pButton) {
+    if (pButton == 0) {
+      nextColor();
+      return true;
+    } else if (pButton == 1) {
+      prevColor();
+      return true;
     }
-    return false;
+
+    return super.mouseClicked(pMouseX, pMouseY, pButton);
   }
 
   public @Nonnull String getTooltipPrefix() {
@@ -56,7 +53,7 @@ public class ColorButton extends IconButton {
 
   private void nextColor() {
     colorIndex++;
-    if (colorIndex >= ItemDye.DYE_COLORS.length) {
+    if (colorIndex >= DyeColor.values().length) {
       colorIndex = 0;
     }
     setColorIndex(colorIndex);
@@ -65,7 +62,7 @@ public class ColorButton extends IconButton {
   private void prevColor() {
     colorIndex--;
     if (colorIndex < 0) {
-      colorIndex = ItemDye.DYE_COLORS.length - 1;
+      colorIndex = DyeColor.values().length - 1;
     }
     setColorIndex(colorIndex);
   }
@@ -75,8 +72,9 @@ public class ColorButton extends IconButton {
   }
 
   public void setColorIndex(int colorIndex) {
-    this.colorIndex = MathHelper.clamp(colorIndex, 0, ItemDye.DYE_COLORS.length - 1);
-    String colStr = DyeColor.values()[colorIndex].getLocalisedName();
+    this.colorIndex = Mth.clamp(colorIndex, 0, DyeColor.values().length - 1);
+
+    String colStr = DyeColor.values()[colorIndex].getName();
     if (tooltipPrefix.length() > 0) {
       setToolTip(tooltipPrefix, colStr);
     } else {
@@ -85,27 +83,28 @@ public class ColorButton extends IconButton {
   }
 
   @Override
-  public void drawButton(@Nonnull Minecraft mc, int mouseX, int mouseY, float partialTicks) {
-    super.drawButton(mc, mouseX, mouseY, partialTicks);
+  public void renderButton(PoseStack pPoseStack, int mouseX, int mouseY, float pPartialTick) {
+    super.renderButton(pPoseStack, mouseX, mouseY, pPartialTick);
     if (visible) {
-      BufferBuilder tes = Tessellator.getInstance().getBuffer();
-      tes.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR);
+      BufferBuilder tes = Tesselator.getInstance().getBuilder();
+      tes.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
 
       int xAdj = this.x + 2;
       int yAdj = this.y + 2;
+      int zLevel = getBlitOffset();
 
-      GlStateManager.disableTexture2D();
-      int col = ItemDye.DYE_COLORS[colorIndex];
+      RenderSystem.disableTexture();
+      int col = DyeColor.byId(colorIndex).getMaterialColor().col;
       Vector3f c = ColorUtil.toFloat(col);
-      GlStateManager.color(c.x, c.y, c.z);
+      RenderSystem.setShaderColor(c.x, c.y, c.z, 1);
 
-      tes.pos(xAdj, yAdj + height - 4, zLevel).color(c.x, c.y, c.z, 1).endVertex();
-      tes.pos(xAdj + width - 4, yAdj + height - 4, zLevel).color(c.x, c.y, c.z, 1).endVertex();
-      tes.pos(xAdj + width - 4, yAdj + 0, zLevel).color(c.x, c.y, c.z, 1).endVertex();
-      tes.pos(xAdj, yAdj + 0, zLevel).color(c.x, c.y, c.z, 1).endVertex();
+      tes.vertex(xAdj, yAdj + height - 4, zLevel).color(c.x, c.y, c.z, 1).endVertex();
+      tes.vertex(xAdj + width - 4, yAdj + height - 4, zLevel).color(c.x, c.y, c.z, 1).endVertex();
+      tes.vertex(xAdj + width - 4, yAdj + 0, zLevel).color(c.x, c.y, c.z, 1).endVertex();
+      tes.vertex(xAdj, yAdj + 0, zLevel).color(c.x, c.y, c.z, 1).endVertex();
 
-      Tessellator.getInstance().draw();
-      GlStateManager.enableTexture2D();
+      tes.end();
+      RenderSystem.enableTexture();
 
     }
   }

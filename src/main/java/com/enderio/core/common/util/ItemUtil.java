@@ -5,25 +5,24 @@ import javax.annotation.Nonnull;
 import com.enderio.core.EnderCore;
 import com.enderio.core.common.vecmath.Vector3f;
 
-import net.minecraft.entity.item.EntityItem;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
-import net.minecraftforge.oredict.OreDictionary;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 
 public class ItemUtil {
 
-  public static void spawnItemInWorldWithRandomMotion(@Nonnull World world, @Nonnull ItemStack item, @Nonnull BlockPos pos) {
-    spawnItemInWorldWithRandomMotion(world, item, pos.getX(), pos.getY(), pos.getZ());
+  public static void spawnItemInWorldWithRandomMotion(@Nonnull Level level, @Nonnull ItemStack item, @Nonnull BlockPos pos) {
+    spawnItemInWorldWithRandomMotion(level, item, pos.getX(), pos.getY(), pos.getZ());
   }
 
   /**
    * Spawns an ItemStack into the world with motion that simulates a normal block drop.
    *
-   * @param world
-   *          The world object.
+   * @param level
+   *          The level object.
    * @param item
    *          The ItemStack to spawn.
    * @param x
@@ -33,9 +32,9 @@ public class ItemUtil {
    * @param z
    *          Z coordinate of the block in which to spawn the entity.
    */
-  public static void spawnItemInWorldWithRandomMotion(@Nonnull World world, @Nonnull ItemStack item, int x, int y, int z) {
+  public static void spawnItemInWorldWithRandomMotion(@Nonnull Level level, @Nonnull ItemStack item, int x, int y, int z) {
     if (!item.isEmpty()) {
-      spawnItemInWorldWithRandomMotion(new EntityItem(world, x + 0.5, y + 0.5, z + 0.5, item));
+      spawnItemInWorldWithRandomMotion(new ItemEntity(level, x + 0.5, y + 0.5, z + 0.5, item));
     }
   }
 
@@ -57,15 +56,15 @@ public class ItemUtil {
    * @param scale
    *          The factor with which to push the spawn location out.
    */
-  public static void spawnItemInWorldWithRandomMotion(@Nonnull World world, @Nonnull ItemStack item, @Nonnull BlockPos pos, float hitX, float hitY, float hitZ,
-      float scale) {
+  public static void spawnItemInWorldWithRandomMotion(@Nonnull Level world, @Nonnull ItemStack item, @Nonnull BlockPos pos, float hitX, float hitY, float hitZ,
+                                                      float scale) {
     Vector3f v = new Vector3f((hitX - .5f), (hitY - .5f), (hitZ - .5f));
     v.normalize();
     v.scale(scale);
     float x = pos.getX() + .5f + v.x;
     float y = pos.getY() + .5f + v.y;
     float z = pos.getZ() + .5f + v.z;
-    spawnItemInWorldWithRandomMotion(new EntityItem(world, x, y, z, item));
+    spawnItemInWorldWithRandomMotion(new ItemEntity(world, x, y, z, item));
   }
 
   /**
@@ -74,36 +73,16 @@ public class ItemUtil {
    * @param entity
    *          The entity to spawn.
    */
-  public static void spawnItemInWorldWithRandomMotion(@Nonnull EntityItem entity) {
-    entity.setDefaultPickupDelay();
-    entity.world.spawnEntity(entity);
-  }
-
-  /**
-   * Returns true if the given stack has the given Ore Dictionary name applied to it.
-   *
-   * @param stack
-   *          The ItemStack to check.
-   * @param oredict
-   *          The oredict name.
-   * @return True if the ItemStack matches the name passed.
-   */
-  public static boolean itemStackMatchesOredict(@Nonnull ItemStack stack, String oredict) {
-    int[] ids = OreDictionary.getOreIDs(stack);
-    for (int i : ids) {
-      String name = OreDictionary.getOreName(i);
-      if (name.equals(oredict)) {
-        return true;
-      }
-    }
-    return false;
+  public static void spawnItemInWorldWithRandomMotion(@Nonnull ItemEntity entity) {
+    entity.setDefaultPickUpDelay();
+    entity.level.addFreshEntity(entity);
   }
 
   public static String getDurabilityString(@Nonnull ItemStack item) {
     if (item.isEmpty()) {
       return null;
     }
-    return EnderCore.lang.localize("tooltip.durability") + " " + (item.getMaxDamage() - item.getItemDamage()) + "/" + item.getMaxDamage();
+    return EnderCore.lang.localize("tooltip.durability") + " " + (item.getMaxDamage() - item.getDamageValue()) + "/" + item.getMaxDamage();
   }
 
   /**
@@ -113,11 +92,11 @@ public class ItemUtil {
    *          The ItemStack to get the tag from.
    * @return An NBTTagCompound from the stack.
    */
-  public static NBTTagCompound getOrCreateNBT(ItemStack stack) {
-    if (!stack.hasTagCompound()) {
-      stack.setTagCompound(new NBTTagCompound());
+  public static CompoundTag getOrCreateNBT(ItemStack stack) {
+    if (!stack.hasTag()) {
+      stack.setTag(new CompoundTag());
     }
-    return stack.getTagCompound();
+    return stack.getTag();
   }
 
   public static boolean isStackFull(@Nonnull ItemStack contents) {
@@ -135,10 +114,12 @@ public class ItemUtil {
     if (s1.isEmpty() || s2.isEmpty() || !s1.isStackable() || !s2.isStackable()) {
       return false;
     }
-    if (!s1.isItemEqual(s2)) {
+
+    if (!s1.equals(s2, true)) {
       return false;
     }
-    return ItemStack.areItemStackTagsEqual(s1, s2);
+
+    return ItemStack.tagMatches(s1, s2);
   }
 
   /**
@@ -152,10 +133,10 @@ public class ItemUtil {
     if (s1.isEmpty() || s2.isEmpty()) {
       return false;
     }
-    if (!s1.isItemEqual(s2)) {
+    if (!s1.equals(s2, true)) {
       return false;
     }
-    return ItemStack.areItemStackTagsEqual(s1, s2);
+    return ItemStack.tagMatches(s1, s2);
   }
 
   /**
@@ -169,10 +150,12 @@ public class ItemUtil {
     if (s1.isEmpty() || s2.isEmpty()) {
       return false;
     }
-    if (!s1.isItemEqualIgnoreDurability(s2)) {
+
+    if (s1.getItem() == s2.getItem()) {
       return false;
     }
-    return ItemStack.areItemStackTagsEqual(s1, s2);
+
+    return ItemStack.tagMatches(s1, s2);
   }
 
   /**
@@ -186,14 +169,14 @@ public class ItemUtil {
    *          The item to pick up
    * @return The remaining stack. Empty when all was picked up.
    */
-  public static @Nonnull ItemStack fakeItemPickup(@Nonnull EntityPlayer player, @Nonnull ItemStack itemstack) {
-    if (!player.world.isRemote) {
-      EntityItem entityItem = new EntityItem(player.world, player.posX, player.posY, player.posZ, itemstack);
-      entityItem.onCollideWithPlayer(player);
-      if (entityItem.isDead) {
+  public static @Nonnull ItemStack fakeItemPickup(@Nonnull Player player, @Nonnull ItemStack itemstack) {
+    if (!player.level.isClientSide) {
+      ItemEntity entityItem = new ItemEntity(player.level, player.getX(), player.getY(), player.getZ(), itemstack);
+      entityItem.playerTouch(player);
+      if (!entityItem.isAlive()) {
         return ItemStack.EMPTY;
       } else {
-        entityItem.setDead();
+        entityItem.kill();
         return entityItem.getItem();
       }
     }

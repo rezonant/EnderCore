@@ -1,24 +1,22 @@
 package com.enderio.core.common.handlers;
 
-import com.enderio.core.common.Handlers.Handler;
 import com.enderio.core.common.fluid.BlockFluidEnder;
-
-import net.minecraft.entity.EntityLiving;
-import net.minecraft.entity.EntitySpawnPlacementRegistry;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.SpawnPlacements;
 import net.minecraftforge.event.entity.living.LivingSpawnEvent;
-import net.minecraftforge.fml.common.eventhandler.Event.Result;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
-@Handler
+@Mod.EventBusSubscriber
 public class FluidSpawnHandler {
 
   @SubscribeEvent
   public static void onEntitySpawn(LivingSpawnEvent.CheckSpawn evt) {
-    if (evt.getResult() != Result.DENY
-        && EntitySpawnPlacementRegistry
-            .getPlacementForEntity(evt.getEntity().getClass()) == EntityLiving.SpawnPlacementType.IN_WATER
-        && evt.getWorld().getBlockState(evt.getEntityLiving().getPosition()).getBlock() instanceof BlockFluidEnder) {
-      evt.setResult(Result.DENY);
+    if (evt.getResult() != Event.Result.DENY
+        && SpawnPlacements.getPlacementType(evt.getEntity().getType()) == SpawnPlacements.Type.IN_WATER
+        && evt.getLevel().getBlockState(new BlockPos(evt.getEntity().getPosition(0))).getBlock() instanceof BlockFluidEnder) {
+      evt.setResult(Event.Result.DENY);
     }
     return;
   }

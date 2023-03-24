@@ -5,12 +5,12 @@ import javax.annotation.Nullable;
 
 import com.enderio.core.common.util.NNList;
 
-import net.minecraft.block.Block;
-import net.minecraft.init.Items;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemBlock;
-import net.minecraft.item.ItemBlockSpecial;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Block;
+import net.minecraftforge.registries.ForgeRegistries;
 
 class BlockThing implements IThing {
 
@@ -23,19 +23,17 @@ class BlockThing implements IThing {
   }
 
   public static @Nullable Item findBlockItem(@Nonnull Block block) {
-    Item item = Item.getItemFromBlock(block);
-    if (item != Items.AIR) {
+    Item item = block.asItem();
+
+    if (item != null && item != Items.AIR)
       return item;
-    }
-    for (Item candidate : Item.REGISTRY) {
-      if (candidate instanceof ItemBlockSpecial && ((ItemBlockSpecial) candidate).getBlock() == block) {
-        return candidate;
-      }
-      if (candidate instanceof ItemBlock && ((ItemBlock) candidate).getBlock() == block) {
-        // "bad data" case, but mods may produce it...
+
+    for (Item candidate : ForgeRegistries.ITEMS) {
+      if (candidate instanceof BlockItem && ((BlockItem) candidate).getBlock() == block) {
         return candidate;
       }
     }
+
     return null;
   }
 

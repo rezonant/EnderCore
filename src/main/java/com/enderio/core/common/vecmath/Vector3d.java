@@ -1,9 +1,7 @@
 package com.enderio.core.common.vecmath;
 
+import net.minecraft.core.BlockPos;
 import javax.annotation.Nonnull;
-
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
 
 public class Vector3d {
 
@@ -26,9 +24,15 @@ public class Vector3d {
   public Vector3d(Vector3d other) {
     this(other.x, other.y, other.z);
   }
+  public Vector3d(com.mojang.math.Vector3d other) {
+    this(other.x, other.y, other.z);
+  }
 
   public Vector3d(Vector3f corner) {
     this(corner.x, corner.y, corner.z);
+  }
+  public Vector3d(com.mojang.math.Vector3f corner) {
+    this(corner.x(), corner.y(), corner.z());
   }
 
   public Vector3d(BlockPos blockPos) {
@@ -149,7 +153,7 @@ public class Vector3d {
     z = Math.abs(z);
   }
 
-  public @Nonnull Vec3d getVec3() {
-    return new Vec3d(x, y, z);
+  public @Nonnull Vector3d getVec3() {
+    return new Vector3d(x, y, z);
   }
 }

@@ -8,9 +8,11 @@ import javax.annotation.Nullable;
 import com.enderio.core.api.client.gui.IGuiScreen;
 import com.enderio.core.client.gui.widget.GuiToolTip;
 
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 
-public class TooltipButton extends GuiButtonHideable {
+public class TooltipButton extends HideableButton {
 
   protected int xOrigin;
   protected int yOrigin;
@@ -18,12 +20,13 @@ public class TooltipButton extends GuiButtonHideable {
   protected @Nullable String[] toolTipText;
   protected @Nullable GuiToolTip toolTip;
 
-  public TooltipButton(@Nonnull IGuiScreen gui, int id, int x, int y, int widthIn, int heightIn, @Nonnull String buttonText) {
-    super(id, x, y, widthIn, heightIn, buttonText);
+  public TooltipButton(@Nonnull IGuiScreen gui, int pX, int pY, int pWidth, int pHeight, Component pMessage, OnPress pOnPress) {
+    super(pX, pY, pWidth, pHeight, pMessage, pOnPress);
     this.gui = gui;
     this.xOrigin = x;
     this.yOrigin = y;
   }
+
 
   public void setToolTip(String... tooltipText) {
     if (toolTip != null) {
@@ -52,7 +55,7 @@ public class TooltipButton extends GuiButtonHideable {
   }
 
   public void onGuiInit() {
-    gui.addGuiButton(this);
+    gui.addButton(this);
     if (toolTip != null) {
       gui.addToolTip(toolTip);
     }
@@ -106,23 +109,23 @@ public class TooltipButton extends GuiButtonHideable {
     }
   }
 
-  protected void updateTooltip(@Nonnull Minecraft mc, int mouseX, int mouseY) {
+  protected void updateTooltip(int mouseX, int mouseY) {
     if (toolTip != null) {
-      toolTip.setIsVisible(visible && enabled);
+      toolTip.setIsVisible(visible && active);
     }
   }
 
-  protected final void doDrawButton(@Nonnull Minecraft mc, int mouseX, int mouseY, float partialTicks) {
-    super.drawButton(mc, mouseX, mouseY, partialTicks);
+  protected final void doRenderButton(@Nonnull PoseStack ps, int mouseX, int mouseY, float partialTicks) {
+    super.renderButton(ps, mouseX, mouseY, partialTicks);
   }
 
   /**
    * Draws this button to the screen.
    */
   @Override
-  public void drawButton(@Nonnull Minecraft mc, int mouseX, int mouseY, float partialTicks) {
-    updateTooltip(mc, mouseX, mouseY);
-    doDrawButton(mc, mouseX, mouseY, partialTicks);
+  public void renderButton(PoseStack pPoseStack, int pMouseX, int pMouseY, float pPartialTick) {
+    updateTooltip(pMouseX, pMouseY);
+    doRenderButton(pPoseStack, pMouseX, pMouseY, pPartialTick);
   }
 
 }

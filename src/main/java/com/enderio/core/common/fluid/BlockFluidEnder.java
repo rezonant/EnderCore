@@ -3,40 +3,30 @@ package com.enderio.core.common.fluid;
 import java.util.Locale;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import com.enderio.core.common.util.NullHelper;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.Material;
+import net.minecraftforge.fluids.IFluidBlock;
 
-import net.minecraft.block.material.Material;
-import net.minecraft.block.material.MaterialLiquid;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.entity.Entity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IBlockAccess;
-import net.minecraft.world.World;
-import net.minecraftforge.fluids.BlockFluidClassic;
-import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
-
-public abstract class BlockFluidEnder extends BlockFluidClassic {
+public abstract class BlockFluidEnder extends Block implements IFluidBlock {
 
   private float fogColorRed = 1f;
   private float fogColorGreen = 1f;
   private float fogColorBlue = 1f;
   private final @Nonnull Material material;
 
-  protected BlockFluidEnder(@Nonnull Fluid fluid, @Nonnull Material material, int fogColor) {
-    super(fluid, new MaterialLiquid(material.getMaterialMapColor()) {
-      // new Material for each liquid so neighboring different liquids render correctly and don't bleed into each other
-      @Override
-      public boolean blocksMovement() {
-        return true; // so our liquids are not replaced by water
-      }
-    });
+  private Fluid fluid;
+
+  @Override
+  public Fluid getFluid() {
+    return this.fluid;
+  }
+
+  protected BlockFluidEnder(BlockBehaviour.Properties properties, @Nonnull Fluid fluid, @Nonnull Material material, int fogColor) {
+    super(properties);
+    this.fluid = fluid;
     this.material = material;
 
     // darken fog color to fit the fog rendering
@@ -48,13 +38,13 @@ public abstract class BlockFluidEnder extends BlockFluidClassic {
       dim *= .9f;
     }
 
-    setNames(fluid);
+    //setNames(fluid);
   }
 
-  protected void setNames(Fluid fluid) {
-    setUnlocalizedName(NullHelper.notnullF(fluid.getUnlocalizedName(), "encountered fluid without a name"));
-    setRegistryName("block_fluid_" + fluid.getName().toLowerCase(Locale.ENGLISH));
-  }
+//  protected void setNames(Fluid fluid) {
+//    setUnlocalizedName(NullHelper.notnullF(fluid.getUnlocalizedName(), "encountered fluid without a name"));
+//    setRegistryName("block_fluid_" + fluid.getName().toLowerCase(Locale.ENGLISH));
+//  }
 
   public float getFogColorRed() {
     return fogColorRed;
@@ -79,42 +69,41 @@ public abstract class BlockFluidEnder extends BlockFluidClassic {
   public void setFogColorBlue(float fogColorBlue) {
     this.fogColorBlue = fogColorBlue;
   }
-
-  @Override
-  public Boolean isEntityInsideMaterial(@Nonnull IBlockAccess world, @Nonnull BlockPos blockpos, @Nonnull IBlockState iblockstate, @Nonnull Entity entity,
-      double yToTest, @Nonnull Material materialIn, boolean testingHead) {
-    if (materialIn == material || materialIn == this.blockMaterial) {
-      return Boolean.TRUE;
-    }
-    return super.isEntityInsideMaterial(world, blockpos, iblockstate, entity, yToTest, materialIn, testingHead);
-  }
-
-  @Override
-  public boolean canDisplace(IBlockAccess world, BlockPos pos) {
-    IBlockState bs = NullHelper.notnullF(world, "canDisplace() called without world")
-        .getBlockState(NullHelper.notnullF(pos, "canDisplace() called without pos"));
-    if (bs.getMaterial().isLiquid()) {
-      return false;
-    }
-    return super.canDisplace(world, pos);
-  }
-
-  @Override
-  public boolean displaceIfPossible(World world, BlockPos pos) {
-    IBlockState bs = NullHelper.notnullF(world, "displaceIfPossible() called without world")
-        .getBlockState(NullHelper.notnullF(pos, "displaceIfPossible() called without pos"));
-    if (bs.getMaterial().isLiquid()) {
-      return false;
-    }
-    return super.displaceIfPossible(world, pos);
-  }
-
-  @Override
-  @SideOnly(Side.CLIENT)
-  public void getSubBlocks(@Nullable CreativeTabs tab, @Nonnull NonNullList<ItemStack> list) {
-    if (tab != null) {
-      super.getSubBlocks(tab, list);
-    }
-  }
-
+//
+//  @Override
+//  public Boolean isEntityInsideMaterial(@Nonnull IBlockAccess world, @Nonnull BlockPos blockpos, @Nonnull BlockState iblockstate, @Nonnull Entity entity,
+//                                        double yToTest, @Nonnull Material materialIn, boolean testingHead) {
+//    if (materialIn == material || materialIn == this.blockMaterial) {
+//      return Boolean.TRUE;
+//    }
+//    return super.isEntityInsideMaterial(world, blockpos, iblockstate, entity, yToTest, materialIn, testingHead);
+//  }
+//
+//  @Override
+//  public boolean canDisplace(IBlockAccess world, BlockPos pos) {
+//    IBlockState bs = NullHelper.notnullF(world, "canDisplace() called without world")
+//        .getBlockState(NullHelper.notnullF(pos, "canDisplace() called without pos"));
+//    if (bs.getMaterial().isLiquid()) {
+//      return false;
+//    }
+//    return super.canDisplace(world, pos);
+//  }
+//
+//  @Override
+//  public boolean displaceIfPossible(Level world, BlockPos pos) {
+//    IBlockState bs = NullHelper.notnullF(world, "displaceIfPossible() called without world")
+//        .getBlockState(NullHelper.notnullF(pos, "displaceIfPossible() called without pos"));
+//    if (bs.getMaterial().isLiquid()) {
+//      return false;
+//    }
+//    return super.displaceIfPossible(world, pos);
+//  }
+//
+//  @Override
+//  @OnlyIn(Dist.CLIENT)
+//  public void getSubBlocks(@Nullable CreativeTabs tab, @Nonnull NonNullList<ItemStack> list) {
+//    if (tab != null) {
+//      super.getSubBlocks(tab, list);
+//    }
+//  }
 }

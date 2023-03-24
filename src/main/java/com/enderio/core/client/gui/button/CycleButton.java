@@ -10,6 +10,7 @@ import javax.annotation.Nullable;
 import com.enderio.core.api.client.gui.IGuiOverlay;
 import com.enderio.core.api.client.gui.IGuiScreen;
 import com.enderio.core.api.client.render.IWidgetIcon;
+import com.enderio.core.client.InputUtil;
 import com.enderio.core.client.gui.GuiContainerBase;
 import com.enderio.core.client.gui.button.CycleButton.ICycleEnum;
 import com.enderio.core.client.render.ColorUtil;
@@ -17,11 +18,9 @@ import com.enderio.core.client.render.EnderWidget;
 import com.enderio.core.client.render.RenderUtil;
 import com.enderio.core.common.util.NNList;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.RenderHelper;
 import org.apache.commons.lang3.tuple.Pair;
-import org.lwjgl.input.Mouse;
 
 /**
  * A button which automatically parses enum constants and cycles between them when clicked.
@@ -53,8 +52,8 @@ public class CycleButton<T extends Enum<T> & ICycleEnum> extends IconButton {
   private boolean isOpened = true;
   private PickerOverlay overlay;
 
-  public CycleButton(@Nonnull IGuiScreen gui, int id, int x, int y, @Nonnull Class<T> enumClass) {
-    super(gui, id, x, y, (IWidgetIcon)null);
+  public CycleButton(@Nonnull IGuiScreen gui, int x, int y, @Nonnull Class<T> enumClass) {
+    super(gui, x, y, (button) -> {}, (IWidgetIcon)null);
     this.modes = NNList.of(enumClass);
     overlay = new PickerOverlay(this);
     ((GuiContainerBase)gui).addOverlay(overlay);
@@ -70,8 +69,8 @@ public class CycleButton<T extends Enum<T> & ICycleEnum> extends IconButton {
   }
 
   @Override
-  public boolean mousePressedButton(@Nonnull Minecraft mc, int mouseX, int mouseY, int button) {
-    boolean result = super.mousePressedButton(mc, mouseX, mouseY, button);
+  public boolean mouseClicked(double pMouseX, double pMouseY, int pButton) {
+    var result = super.mouseClicked(pMouseX, pMouseY, pButton);
     if (result) {
       overlay.setIsVisible(!overlay.isVisible());
     }
@@ -154,8 +153,7 @@ public class CycleButton<T extends Enum<T> & ICycleEnum> extends IconButton {
 
     @Override
     public void draw(int mouseX, int mouseY, float partialTick) {
-      RenderHelper.enableGUIStandardItemLighting();
-      GlStateManager.enableDepth();
+      RenderSystem.enableDepthTest();
 
       if (isOpened) {
         for (Pair<Rectangle, T> pair : modes) {
@@ -186,13 +184,13 @@ public class CycleButton<T extends Enum<T> & ICycleEnum> extends IconButton {
     }
 
     @Override
-    public boolean handleMouseInput(int x, int y, int b) {
+    public boolean handleMouseInput(double x, double y, int b) {
       if (isMouseInBounds(x, y)) {
-        if (b == 0 && Mouse.isButtonDown(b)) {
-          int mouseX = x - cycleButton.gui.getGuiRootLeft() - getBounds().x;
-          int mouseY = y - cycleButton.gui.getGuiRootTop() - getBounds().y;
+        if (b == 0 && InputUtil.isMouseButtonPressed(b)) {
+          double mouseX = x - cycleButton.gui.getGuiRootLeft() - getBounds().x;
+          double mouseY = y - cycleButton.gui.getGuiRootTop() - getBounds().y;
           for (Pair<Rectangle, T> pair : modes) {
-            if (pair.getLeft().contains(mouseX, mouseY)) {
+            if (pair.getLeft().contains((int)mouseX, (int)mouseY)) {
               cycleButton.setMode(pair.getRight());
               setIsVisible(false);
             }
@@ -200,16 +198,17 @@ public class CycleButton<T extends Enum<T> & ICycleEnum> extends IconButton {
         }
         return true;
       }
-      if (b == 0 && Mouse.isButtonDown(b)) {
+
+      if (b == 0 && InputUtil.isMouseButtonPressed(b)) {
         setIsVisible(false);
       }
       return false;
     }
 
     @Override
-    public boolean isMouseInBounds(int mouseX, int mouseY) {
-      int x = mouseX - cycleButton.gui.getGuiRootLeft();
-      int y = mouseY - cycleButton.gui.getGuiRootTop();
+    public boolean isMouseInBounds(double mouseX, double mouseY) {
+      double x = mouseX - cycleButton.gui.getGuiRootLeft();
+      double y = mouseY - cycleButton.gui.getGuiRootTop();
       return bounds.contains(x, y);
     }
 

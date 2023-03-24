@@ -9,7 +9,8 @@ import com.enderio.core.api.common.util.ITankAccess;
 import com.enderio.core.common.util.NNList;
 
 import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.FluidTank;
+import net.minecraftforge.fluids.IFluidTank;
+import net.minecraftforge.fluids.capability.IFluidHandler;
 
 public class TankAccessFluidWrapper implements IFluidWrapper {
 
@@ -21,19 +22,19 @@ public class TankAccessFluidWrapper implements IFluidWrapper {
 
   @Override
   public int offer(FluidStack resource) {
-    FluidTank inputTank = tankAccess.getInputTank(resource);
+    IFluidTank inputTank = tankAccess.getInputTank(resource);
     if (inputTank != null) {
-      return inputTank.fill(resource, false);
+      return inputTank.fill(resource, IFluidHandler.FluidAction.SIMULATE);
     }
     return 0;
   }
 
   @Override
   public int fill(FluidStack resource) {
-    FluidTank inputTank = tankAccess.getInputTank(resource);
+    IFluidTank inputTank = tankAccess.getInputTank(resource);
     if (inputTank != null) {
       tankAccess.setTanksDirty();
-      return inputTank.fill(resource, true);
+      return inputTank.fill(resource, IFluidHandler.FluidAction.EXECUTE);
     }
     return 0;
   }
@@ -41,10 +42,10 @@ public class TankAccessFluidWrapper implements IFluidWrapper {
   @Override
   @Nullable
   public FluidStack drain(FluidStack resource) {
-    FluidTank[] outputTanks = tankAccess.getOutputTanks();
+    IFluidTank[] outputTanks = tankAccess.getOutputTanks();
     if (outputTanks.length >= 1 && outputTanks[0] != null) {
       tankAccess.setTanksDirty();
-      return outputTanks[0].drain(resource, true);
+      return outputTanks[0].drain(resource, IFluidHandler.FluidAction.EXECUTE);
     }
     return null;
   }
@@ -52,17 +53,10 @@ public class TankAccessFluidWrapper implements IFluidWrapper {
   @Override
   @Nullable
   public FluidStack getAvailableFluid() {
-    FluidTank[] outputTanks = tankAccess.getOutputTanks();
+    IFluidTank[] outputTanks = tankAccess.getOutputTanks();
     if (outputTanks.length >= 1 && outputTanks[0] != null) {
       return outputTanks[0].getFluid();
     }
     return null;
   }
-
-  @Override
-  @Nonnull
-  public List<ITankInfoWrapper> getTankInfoWrappers() {
-    return NNList.emptyList();
-  }
-
 }

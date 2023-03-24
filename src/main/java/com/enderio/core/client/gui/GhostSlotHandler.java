@@ -8,9 +8,12 @@ import com.enderio.core.client.render.RenderUtil;
 import com.enderio.core.common.util.ItemUtil;
 import com.enderio.core.common.util.NNList;
 
+import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.ItemStack;
 
 public class GhostSlotHandler {
 
@@ -31,9 +34,9 @@ public class GhostSlotHandler {
     ghostSlots.add(slot);
   }
 
-  public GhostSlot getGhostSlotAt(@Nonnull GuiContainerBase guiContainerBase, int mouseX, int mouseY) {
-    int mX = mouseX - guiContainerBase.getGuiLeft();
-    int mY = mouseY - guiContainerBase.getGuiTop();
+  public GhostSlot getGhostSlotAt(@Nonnull GuiContainerBase guiContainerBase, double mouseX, double mouseY) {
+    double mX = mouseX - guiContainerBase.getGuiLeft();
+    double mY = mouseY - guiContainerBase.getGuiTop();
     for (GhostSlot slot : ghostSlots) {
       if (slot.isVisible() && slot.isMouseOver(mX, mY) && slot.shouldDrawFakeHover()) {
         return slot;
@@ -58,8 +61,8 @@ public class GhostSlotHandler {
    * @param button
    *          The button used (0=left, 1=right). The mouse wheel is mapped to -1=down and -2=up.
    */
-  protected void ghostSlotClicked(@Nonnull GuiContainerBase gui, @Nonnull GhostSlot slot, int x, int y, int button) {
-    ItemStack handStack = Minecraft.getMinecraft().player.inventory.getItemStack();
+  protected void ghostSlotClicked(@Nonnull GuiContainerBase gui, @Nonnull GhostSlot slot, double x, double y, int button) {
+    ItemStack handStack = Minecraft.getInstance().player.getItemInHand(InteractionHand.MAIN_HAND);
     ItemStack existingStack = slot.getStack();
     if (button == 0) { // left
       ghostSlotClickedPrimaryMouseButton(slot, handStack, existingStack);
@@ -154,7 +157,7 @@ public class GhostSlotHandler {
     hoverGhostSlot = null;
   }
 
-  protected void drawGhostSlots(@Nonnull GuiContainerBase gui, int mouseX, int mouseY) {
+  protected void drawGhostSlots(PoseStack poseStack, @Nonnull GuiContainerBase gui, int mouseX, int mouseY) {
     int sx = gui.getGuiLeft();
     int sy = gui.getGuiTop();
     gui.drawFakeItemsStart();
@@ -180,7 +183,7 @@ public class GhostSlotHandler {
       final GhostSlot hoverGhostSlot2 = hoverGhostSlot;
       if (hoverGhostSlot2 != null && hoverGhostSlot2.shouldDrawFakeHover()) {
         // draw hover last to prevent it from affecting rendering of other slots ...
-        gui.drawFakeItemHover(hoverGhostSlot2.getX() + sx, hoverGhostSlot2.getY() + sy);
+        gui.drawFakeItemHover(poseStack, hoverGhostSlot2.getX() + sx, hoverGhostSlot2.getY() + sy);
       }
     } finally {
       gui.drawFakeItemsEnd();
@@ -192,14 +195,15 @@ public class GhostSlotHandler {
    * painted with 50% transparency. (100%*a ° 100%*b ° 50%*a == 100%*a ° 50%*b)
    */
   protected void drawGhostSlotGrayout(@Nonnull GuiContainerBase gui, @Nonnull GhostSlot slot) {
-    GlStateManager.disableDepth();
-    GlStateManager.enableBlend();
-    GlStateManager.disableLighting();
-    GlStateManager.color(1.0F, 1.0F, 1.0F, slot.getGrayOutLevel());
+    RenderSystem.disableDepthTest();
+    RenderSystem.enableBlend();
+    RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, slot.getGrayOutLevel());
     RenderUtil.bindTexture(gui.getGuiTexture());
-    gui.drawTexturedModalRect(gui.getGuiLeft() + slot.getX(), gui.getGuiTop() + slot.getY(), slot.getX(), slot.getY(), 16, 16);
-    GlStateManager.disableBlend();
-    GlStateManager.enableDepth();
+
+    // TODO
+    //gui.drawTexturedModalRect(gui.getGuiLeft() + slot.getX(), gui.getGuiTop() + slot.getY(), slot.getX(), slot.getY(), 16, 16);
+    RenderSystem.disableBlend();
+    RenderSystem.enableDepthTest();
   }
 
   protected boolean drawGhostSlotToolTip(@Nonnull GuiContainerBase gui, int mouseX, int mouseY) {

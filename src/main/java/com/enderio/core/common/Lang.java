@@ -6,8 +6,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.google.common.collect.Lists;
-
-import net.minecraft.util.text.translation.I18n;
+import net.minecraft.client.resources.language.I18n;
 
 @SuppressWarnings("deprecation")
 public class Lang {
@@ -77,7 +76,7 @@ public class Lang {
    * @return A localized string.
    */
   public @Nonnull String localizeExact(@Nonnull String unloc, @Nonnull Object... args) {
-    return I18n.translateToLocalFormatted(unloc, args);
+    return I18n.get(unloc, args);
   }
 
   /**
@@ -89,7 +88,7 @@ public class Lang {
    * @return A localized string.
    */
   public @Nonnull String localizeExact(@Nonnull String unloc) {
-    return I18n.translateToLocal(unloc);
+    return I18n.get(unloc);
   }
 
   /**
@@ -189,6 +188,6 @@ public class Lang {
    * @return True if there is a localization mapped, false otherwise.
    */
   public boolean canLocalizeExact(@Nonnull String unloc) {
-    return I18n.canTranslate(unloc);
+    return I18n.exists(unloc);
   }
 }

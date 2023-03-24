@@ -6,8 +6,8 @@ import javax.annotation.Nonnull;
 
 import com.enderio.core.client.gui.GhostSlotHandler;
 import com.enderio.core.client.gui.widget.GuiToolTip;
-
-import net.minecraft.client.gui.GuiButton;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Widget;
 
 public interface IGuiScreen {
 
@@ -26,15 +26,15 @@ public interface IGuiScreen {
   int getGuiYSize();
 
   @Nonnull
-  <T extends GuiButton> T addGuiButton(@Nonnull T button);
+  <T extends Button> T addButton(@Nonnull T button);
 
-  void removeButton(@Nonnull GuiButton button);
+  void removeButton(@Nonnull Button button);
 
   int getOverlayOffsetXLeft();
 
   int getOverlayOffsetXRight();
 
-  void doActionPerformed(@Nonnull GuiButton but) throws IOException;
+  void doActionPerformed(@Nonnull Button but) throws IOException;
 
   @Nonnull
   GhostSlotHandler getGhostSlotHandler();

@@ -12,11 +12,12 @@ import javax.annotation.Nullable;
 import com.enderio.core.common.util.NNList;
 import com.enderio.core.common.util.NullHelper;
 
-import net.minecraft.init.Blocks;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.tileentity.TileEntity;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.items.IItemHandler;
+import org.jetbrains.annotations.NotNull;
 
 public class EnderInventory implements IItemHandler {
 
@@ -34,7 +35,7 @@ public class EnderInventory implements IItemHandler {
   private final @Nonnull Map<String, InventorySlot> idents = new HashMap<String, InventorySlot>();
   final @Nonnull EnumMap<EnderInventory.Type, NNList<InventorySlot>> slots = new EnumMap<EnderInventory.Type, NNList<InventorySlot>>(EnderInventory.Type.class);
   private final @Nonnull View allSlots = new View(EnderInventory.Type.ALL);
-  private @Nullable TileEntity owner = null;
+  private @Nullable BlockEntity owner = null;
   public static final @Nonnull IItemHandler OFF = new IItemHandler() {
 
     @Override
@@ -60,6 +61,11 @@ public class EnderInventory implements IItemHandler {
     @Override
     public int getSlotLimit(int slot) {
       return 0;
+    }
+
+    @Override
+    public boolean isItemValid(int slot, @NotNull ItemStack stack) {
+      return true;
     }
 
   };
@@ -117,35 +123,34 @@ public class EnderInventory implements IItemHandler {
     return new View(type);
   }
 
-  public @Nonnull NBTTagCompound writeToNBT() {
-    NBTTagCompound tag = new NBTTagCompound();
+  public @Nonnull CompoundTag writeToNBT() {
+    CompoundTag tag = new CompoundTag();
     writeToNBT(tag);
     return tag;
   }
 
-  public void writeToNBT(@Nonnull NBTTagCompound tag) {
+  public void writeToNBT(@Nonnull CompoundTag tag) {
     for (Entry<String, InventorySlot> entry : idents.entrySet()) {
       if (entry.getValue() != null) {
-        NBTTagCompound subTag = new NBTTagCompound();
-        entry.getValue().writeToNBT(subTag);
-        if (!subTag.hasNoTags()) {
-          tag.setTag(NullHelper.notnull(entry.getKey(), "Internal data corruption"), subTag);
+        CompoundTag subTag = entry.getValue().serializeNBT();
+        if (!subTag.isEmpty()) {
+          tag.put(NullHelper.notnull(entry.getKey(), "Internal data corruption"), subTag);
         }
       }
     }
   }
 
-  public void readFromNBT(@Nonnull NBTTagCompound tag, @Nonnull String name) {
-    readFromNBT(tag.getCompoundTag(name));
+  public void readFromNBT(@Nonnull CompoundTag tag, @Nonnull String name) {
+    readFromNBT(tag.getCompound(name));
   }
 
-  public void readFromNBT(NBTTagCompound tag) {
+  public void readFromNBT(CompoundTag tag) {
     for (Entry<String, InventorySlot> entry : idents.entrySet()) {
       final String key = entry.getKey();
       final InventorySlot slot = entry.getValue();
       if (slot != null && key != null) {
-        if (tag.hasKey(key)) {
-          slot.readFromNBT(tag.getCompoundTag(key));
+        if (tag.contains(key)) {
+          slot.readFromNBT(tag.getCompound(key));
         } else {
           slot.clear();
         }
@@ -153,7 +158,7 @@ public class EnderInventory implements IItemHandler {
     }
   }
 
-  public void setOwner(@Nullable TileEntity owner) {
+  public void setOwner(@Nullable BlockEntity owner) {
     this.owner = owner;
     for (InventorySlot slot : idents.values()) {
       slot.setOwner(owner);
@@ -258,6 +263,11 @@ public class EnderInventory implements IItemHandler {
       return 0;
     }
 
+    @Override
+    public boolean isItemValid(int slot, @NotNull ItemStack stack) {
+      return true;
+    }
+
     public @Nonnull Type getType() {
       return type;
     }
@@ -270,5 +280,10 @@ public class EnderInventory implements IItemHandler {
   @Override
   public int getSlotLimit(int slot) {
     return allSlots.getSlotLimit(slot);
+  }
+
+  @Override
+  public boolean isItemValid(int slot, @NotNull ItemStack stack) {
+    return true;
   }
 }

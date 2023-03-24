@@ -9,7 +9,8 @@ import com.enderio.core.client.gui.widget.GuiToolTip;
 import com.enderio.core.common.util.NNList;
 import com.google.common.collect.Sets;
 
-import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.font.FontManager;
 
 public class ToolTipManager {
 
@@ -22,9 +23,9 @@ public class ToolTipManager {
     int getGuiXSize();
 
     @Nonnull
-    FontRenderer getFontRenderer();
+    Font getFontRenderer();
 
-    void drawHoveringToolTipText(@Nonnull List<String> par1List, int par2, int par3, @Nonnull FontRenderer font);
+    void drawHoveringToolTipText(@Nonnull List<String> par1List, int par2, int par3, @Nonnull Font font);
   }
 
   private final @Nonnull Set<GuiToolTip> toolTips = Sets.newHashSet();

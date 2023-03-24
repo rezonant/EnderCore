@@ -3,56 +3,54 @@ package com.enderio.core.client.render;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
+import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.world.level.block.state.BlockState;
 import org.lwjgl.opengl.GL11;
 
-import com.enderio.core.common.TileEntityBase;
+import com.enderio.core.common.BlockEntityBase;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
-import net.minecraftforge.client.MinecraftForgeClient;
+public abstract class ManagedTESR<T extends BlockEntityBase> implements BlockEntityRenderer<T> {
+  protected final BlockEntityRendererProvider.Context context;
 
-public abstract class ManagedTESR<T extends TileEntityBase> extends TileEntitySpecialRenderer<T> {
-
-  protected final @Nullable Block block;
-
-  public ManagedTESR(@Nullable Block block) {
-    super();
-    this.block = block;
+  public ManagedTESR(BlockEntityRendererProvider.Context context) {
+    this.context = context;
   }
 
   @SuppressWarnings({ "null", "unused" })
   @Override
-  public final void render(@Nonnull T te, double x, double y, double z, float partialTicks, int destroyStage, float alpha) {
-    if (te != null && te.hasWorld() && !te.isInvalid()) {
-      final IBlockState blockState = te.getWorld().getBlockState(te.getPos());
-      final int renderPass = MinecraftForgeClient.getRenderPass();
-      if ((block == null || block == blockState.getBlock()) && shouldRender(te, blockState, renderPass)) {
-        GlStateManager.disableLighting();
+  public final void render(@Nonnull T te, float partialTicks, PoseStack poseStack, MultiBufferSource renderer, int light, int overlayLight) {
+    if (te != null && te.hasLevel() && !te.isRemoved()) {
+      final BlockState blockState = te.getLevel().getBlockState(te.getBlockPos());
+
+      final int renderPass = 0; // TODO MinecraftForgeClient.getRenderPass();
+
+      if (shouldRender(te, blockState, renderPass)) {
         if (renderPass == 0) {
-          GlStateManager.disableBlend();
-          GlStateManager.depthMask(true);
+          RenderSystem.disableBlend();
+          RenderSystem.depthMask(true);
         } else {
-          GlStateManager.enableBlend();
-          GlStateManager.depthMask(false);
-          GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+          RenderSystem.enableBlend();
+          RenderSystem.depthMask(false);
+          RenderSystem.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
         }
 
         RenderUtil.bindBlockTexture();
-        GlStateManager.pushMatrix();
-        GlStateManager.translate(x, y, z);
-        renderTileEntity(te, blockState, partialTicks, destroyStage);
-        GlStateManager.popMatrix();
+        renderTileEntity(te, blockState, partialTicks, poseStack, renderer, light, overlayLight);
       }
     } else if (te == null) {
       renderItem();
     }
   }
 
-  protected abstract void renderTileEntity(@Nonnull T te, @Nonnull IBlockState blockState, float partialTicks, int destroyStage);
+  protected abstract void renderTileEntity(@Nonnull T te, BlockState blockState, float partialTicks,
+                                           PoseStack poseStack, MultiBufferSource renderer, int light,
+                                           int overlayLight);
 
-  protected boolean shouldRender(@Nonnull T te, @Nonnull IBlockState blockState, int renderPass) {
+  protected boolean  shouldRender(@Nonnull T te, @Nonnull BlockState blockState, int renderPass) {
     return true;
   }
 

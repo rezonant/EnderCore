@@ -14,60 +14,51 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.io.Files;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.item.EntityItem;
-import net.minecraft.entity.item.EntityXPOrb;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Items;
-import net.minecraft.inventory.IInventory;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemBlock;
-import net.minecraft.item.ItemPotion;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
-import net.minecraftforge.oredict.OreDictionary;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.entity.ExperienceOrb;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.*;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.registries.ForgeRegistries;
 
 public class Util {
 
   public static @Nullable Block getBlockFromItemId(@Nonnull ItemStack itemId) {
     Item item = itemId.getItem();
-    if (item instanceof ItemBlock) {
-      return ((ItemBlock) item).getBlock();
+    if (item instanceof BlockItem) {
+      return ((BlockItem) item).getBlock();
     }
     return null;
   }
 
   public static @Nonnull ItemStack consumeItem(@Nonnull ItemStack stack) {
-    if (stack.getItem() instanceof ItemPotion) {
+    if (stack.getItem() instanceof PotionItem) {
       if (stack.getCount() == 1) {
         return new ItemStack(Items.GLASS_BOTTLE);
       } else {
-        stack.splitStack(1);
+        stack.split(1);
         return stack;
       }
     }
     if (stack.getCount() == 1) {
-      if (stack.getItem().hasContainerItem(stack)) {
-        return stack.getItem().getContainerItem(stack);
+      if (stack.getItem().hasCraftingRemainingItem(stack)) {
+        return stack.getItem().getCraftingRemainingItem(stack);
       } else {
         return ItemStack.EMPTY;
       }
     } else {
-      stack.splitStack(1);
+      stack.split(1);
       return stack;
     }
   }
 
-  public static void giveExperience(@Nonnull EntityPlayer thePlayer, float experience) {
+  public static void giveExperience(@Nonnull Player thePlayer, float experience) {
     int intExp = (int) experience;
     float fractional = experience - intExp;
     if (fractional > 0.0F) {
@@ -76,94 +67,100 @@ public class Util {
       }
     }
     while (intExp > 0) {
-      int j = EntityXPOrb.getXPSplit(intExp);
+      int j = ExperienceOrb.getExperienceValue(intExp);
       intExp -= j;
-      thePlayer.world.spawnEntity(new EntityXPOrb(thePlayer.world, thePlayer.posX, thePlayer.posY + 0.5D, thePlayer.posZ + 0.5D, j));
+      var orb = new ExperienceOrb(thePlayer.level, thePlayer.getX(), thePlayer.getY() + 0.5D, thePlayer.getZ() + 0.5D, j);
+      thePlayer.level.addFreshEntity(orb);
     }
   }
 
-  public static EntityItem createDrop(@Nonnull World world, @Nonnull ItemStack stack, double x, double y, double z, boolean doRandomSpread) {
+  public static ItemEntity createDrop(@Nonnull Level world, @Nonnull ItemStack stack, double x, double y, double z, boolean doRandomSpread) {
     if (stack.isEmpty()) {
       return null;
     }
     if (doRandomSpread) {
       float f1 = 0.7F;
-      double d = (world.rand.nextFloat() * f1) + (1.0F - f1) * 0.5D;
-      double d1 = (world.rand.nextFloat() * f1) + (1.0F - f1) * 0.5D;
-      double d2 = (world.rand.nextFloat() * f1) + (1.0F - f1) * 0.5D;
-      EntityItem entityitem = new EntityItem(world, x + d, y + d1, z + d2, stack);
-      entityitem.setDefaultPickupDelay();
+      double d = (world.random.nextFloat() * f1) + (1.0F - f1) * 0.5D;
+      double d1 = (world.random.nextFloat() * f1) + (1.0F - f1) * 0.5D;
+      double d2 = (world.random.nextFloat() * f1) + (1.0F - f1) * 0.5D;
+      ItemEntity entityitem = new ItemEntity(world, x + d, y + d1, z + d2, stack);
+      entityitem.setDefaultPickUpDelay();
       return entityitem;
     } else {
-      EntityItem entityitem = new EntityItem(world, x, y, z, stack);
-      entityitem.motionX = 0;
-      entityitem.motionY = 0;
-      entityitem.motionZ = 0;
-      entityitem.setNoPickupDelay();
+      ItemEntity entityitem = new ItemEntity(world, x, y, z, stack);
+
+      // TODO
+//      entityitem.motionX = 0;
+//      entityitem.motionY = 0;
+//      entityitem.motionZ = 0;
+      entityitem.setNoPickUpDelay();
       return entityitem;
     }
   }
 
-  public static void dropItems(@Nonnull World world, @Nonnull ItemStack stack, @Nonnull BlockPos pos, boolean doRandomSpread) {
+  public static void dropItems(@Nonnull Level world, @Nonnull ItemStack stack, @Nonnull BlockPos pos, boolean doRandomSpread) {
     dropItems(world, stack, pos.getX(), pos.getY(), pos.getZ(), doRandomSpread);
   }
 
-  public static void dropItems(@Nonnull World world, @Nonnull ItemStack stack, double x, double y, double z, boolean doRandomSpread) {
+  public static void dropItems(@Nonnull Level world, @Nonnull ItemStack stack, double x, double y, double z, boolean doRandomSpread) {
     if (stack.isEmpty()) {
       return;
     }
 
-    EntityItem entityitem = createEntityItem(world, stack, x, y, z, doRandomSpread);
-    world.spawnEntity(entityitem);
+    ItemEntity itemEntity = createEntityItem(world, stack, x, y, z, doRandomSpread);
+    world.addFreshEntity(itemEntity);
   }
 
-  public static EntityItem createEntityItem(@Nonnull World world, @Nonnull ItemStack stack, double x, double y, double z) {
+  public static ItemEntity createEntityItem(@Nonnull Level world, @Nonnull ItemStack stack, double x, double y, double z) {
     return createEntityItem(world, stack, x, y, z, true);
   }
 
-  public static @Nonnull EntityItem createEntityItem(@Nonnull World world, @Nonnull ItemStack stack, double x, double y, double z, boolean doRandomSpread) {
-    EntityItem entityitem;
+  public static @Nonnull ItemEntity createEntityItem(@Nonnull Level world, @Nonnull ItemStack stack, double x, double y, double z, boolean doRandomSpread) {
+    ItemEntity entityitem;
     if (doRandomSpread) {
       float f1 = 0.7F;
-      double d = (world.rand.nextFloat() * f1) + (1.0F - f1) * 0.5D;
-      double d1 = (world.rand.nextFloat() * f1) + (1.0F - f1) * 0.5D;
-      double d2 = (world.rand.nextFloat() * f1) + (1.0F - f1) * 0.5D;
-      entityitem = new EntityItem(world, x + d, y + d1, z + d2, stack);
-      entityitem.setDefaultPickupDelay();
+      double d = (world.random.nextFloat() * f1) + (1.0F - f1) * 0.5D;
+      double d1 = (world.random.nextFloat() * f1) + (1.0F - f1) * 0.5D;
+      double d2 = (world.random.nextFloat() * f1) + (1.0F - f1) * 0.5D;
+      entityitem = new ItemEntity(world, x + d, y + d1, z + d2, stack);
+      entityitem.setDefaultPickUpDelay();
     } else {
-      entityitem = new EntityItem(world, x, y, z, stack);
-      entityitem.motionX = 0;
-      entityitem.motionY = 0;
-      entityitem.motionZ = 0;
-      entityitem.setNoPickupDelay();
+      entityitem = new ItemEntity(world, x, y, z, stack);
+
+      // TODO
+//      entityitem.motionX = 0;
+//      entityitem.motionY = 0;
+//      entityitem.motionZ = 0;
+      entityitem.setNoPickUpDelay();
     }
     return entityitem;
   }
 
-  public static void dropItems(@Nonnull World world, @Nonnull ItemStack stack, int x, int y, int z, boolean doRandomSpread) {
+  public static void dropItems(@Nonnull Level world, @Nonnull ItemStack stack, int x, int y, int z, boolean doRandomSpread) {
     if (stack.isEmpty()) {
       return;
     }
 
     if (doRandomSpread) {
       float f1 = 0.7F;
-      double d = (world.rand.nextFloat() * f1) + (1.0F - f1) * 0.5D;
-      double d1 = (world.rand.nextFloat() * f1) + (1.0F - f1) * 0.5D;
-      double d2 = (world.rand.nextFloat() * f1) + (1.0F - f1) * 0.5D;
-      EntityItem entityitem = new EntityItem(world, x + d, y + d1, z + d2, stack);
-      entityitem.setDefaultPickupDelay();
-      world.spawnEntity(entityitem);
+      double d = (world.random.nextFloat() * f1) + (1.0F - f1) * 0.5D;
+      double d1 = (world.random.nextFloat() * f1) + (1.0F - f1) * 0.5D;
+      double d2 = (world.random.nextFloat() * f1) + (1.0F - f1) * 0.5D;
+      ItemEntity itemEntity = new ItemEntity(world, x + d, y + d1, z + d2, stack);
+      itemEntity.setDefaultPickUpDelay();
+      world.addFreshEntity(itemEntity);
     } else {
-      EntityItem entityitem = new EntityItem(world, x + 0.5, y + 0.5, z + 0.5, stack);
-      entityitem.motionX = 0;
-      entityitem.motionY = 0;
-      entityitem.motionZ = 0;
-      entityitem.setNoPickupDelay();
-      world.spawnEntity(entityitem);
+      ItemEntity itemEntity = new ItemEntity(world, x + 0.5, y + 0.5, z + 0.5, stack);
+      // TODO
+//      itemEntity.motionX = 0;
+//      itemEntity.motionY = 0;
+//      itemEntity.motionZ = 0;
+      itemEntity.setNoPickUpDelay();
+      world.addFreshEntity(itemEntity);
     }
   }
 
-  public static void dropItems(@Nonnull World world, ItemStack[] inventory, int x, int y, int z, boolean doRandomSpread) {
+  public static void dropItems(@Nonnull Level world, ItemStack[] inventory, int x, int y, int z, boolean doRandomSpread) {
     if (inventory == null) {
       return;
     }
@@ -174,8 +171,8 @@ public class Util {
     }
   }
 
-  public static void dropItems(@Nonnull World world, @Nonnull IInventory inventory, int x, int y, int z, boolean doRandomSpread) {
-    for (int l = 0; l < inventory.getSizeInventory(); ++l) {
+  public static void dropItems(@Nonnull Level world, @Nonnull IItemHandler inventory, int x, int y, int z, boolean doRandomSpread) {
+    for (int l = 0; l < inventory.getSlots(); ++l) {
       ItemStack items = inventory.getStackInSlot(l);
 
       if (!items.isEmpty()) {
@@ -187,13 +184,13 @@ public class Util {
   public static boolean dumpModObjects(@Nonnull File file) {
 
     StringBuilder sb = new StringBuilder();
-    for (Object key : Block.REGISTRY.getKeys()) {
+    for (Object key : ForgeRegistries.BLOCKS.getKeys()) {
       if (key != null) {
         sb.append(key.toString());
         sb.append("\n");
       }
     }
-    for (Object key : Item.REGISTRY.getKeys()) {
+    for (Object key : ForgeRegistries.ITEMS.getKeys()) {
       if (key != null) {
         sb.append(key.toString());
         sb.append("\n");
@@ -210,216 +207,185 @@ public class Util {
     }
   }
 
-  public static boolean dumpOreNames(@Nonnull File file) {
-
-    try {
-      String[] oreNames = OreDictionary.getOreNames();
-      Files.write(Joiner.on("\n").join(oreNames), file, Charsets.UTF_8);
-      return true;
-    } catch (IOException e) {
-      Log.warn("Error dumping ore dictionary entries: " + e.getMessage());
-      e.printStackTrace();
-      return false;
-    }
+  public static @Nonnull com.mojang.math.Vector3d getEyePosition(@Nonnull Player player) {
+    return new com.mojang.math.Vector3d(player.getX(), player.getY() + player.getEyeHeight(), player.getZ());
   }
 
-  public static @Nonnull ItemStack decrStackSize(@Nonnull IInventory inventory, int slot, int size) {
-    ItemStack item = inventory.getStackInSlot(slot);
-    if (!item.isEmpty()) {
-      if (item.getCount() <= size) {
-        ItemStack result = item;
-        inventory.setInventorySlotContents(slot, ItemStack.EMPTY);
-        inventory.markDirty();
-        return result;
-      }
-      ItemStack split = item.splitStack(size);
-      inventory.markDirty();
-      return split;
-    }
-    return ItemStack.EMPTY;
+  public static @Nonnull Vector3d getEyePositionEio(@Nonnull Player player) {
+    return new Vector3d(player.getX(), player.getY() + player.getEyeHeight(), player.getZ());
   }
 
-  public static @Nonnull Vec3d getEyePosition(@Nonnull EntityPlayer player) {
-    double y = player.posY;
-    y += player.getEyeHeight();
-    return new Vec3d(player.posX, y, player.posZ);
-  }
-
-  public static @Nonnull Vector3d getEyePositionEio(@Nonnull EntityPlayer player) {
-    Vector3d res = new Vector3d(player.posX, player.posY, player.posZ);
-    res.y += player.getEyeHeight();
-    return res;
-  }
-
-  public static @Nonnull Vector3d getLookVecEio(@Nonnull EntityPlayer player) {
-    Vec3d lv = player.getLookVec();
+  public static @Nonnull Vector3d getLookVecEio(@Nonnull Player player) {
+    var lv = player.getLookAngle();
     return new Vector3d(lv.x, lv.y, lv.z);
   }
 
   // Code adapted from World.rayTraceBlocks to return all
   // collided blocks
-  public static @Nonnull List<RayTraceResult> raytraceAll(@Nonnull World world, @Nonnull Vec3d startVector, @Nonnull Vec3d endVec, boolean includeLiquids) {
-    boolean ignoreBlockWithoutBoundingBox = true;
-    Vec3d startVec = startVector;
+//  public static @Nonnull List<BlockHitResult> raytraceAll(
+//          @Nonnull Level world, @Nonnull com.mojang.math.Vector3d startVector,
+//          @Nonnull com.mojang.math.Vector3d endVec, boolean includeLiquids) {
+//    boolean ignoreBlockWithoutBoundingBox = true;
+//    Vec3d startVec = startVector;
+//
+//    List<RayTraceResult> result = new ArrayList<RayTraceResult>();
+//
+//    if (!Double.isNaN(startVec.x) && !Double.isNaN(startVec.y) && !Double.isNaN(startVec.z)) {
+//      if (!Double.isNaN(endVec.x) && !Double.isNaN(endVec.y) && !Double.isNaN(endVec.z)) {
+//        int i = MathHelper.floor(endVec.x);
+//        int j = MathHelper.floor(endVec.y);
+//        int k = MathHelper.floor(endVec.z);
+//        int l = MathHelper.floor(startVec.x);
+//        int i1 = MathHelper.floor(startVec.y);
+//        int j1 = MathHelper.floor(startVec.z);
+//        BlockPos blockpos = new BlockPos(l, i1, j1);
+//        IBlockState iblockstate = world.getBlockState(blockpos);
+//        Block block = iblockstate.getBlock();
+//
+//        if ((!ignoreBlockWithoutBoundingBox || iblockstate.getCollisionBoundingBox(world, blockpos) != Block.NULL_AABB)
+//            && block.canCollideCheck(iblockstate, includeLiquids)) {
+//          @Nonnull
+//          RayTraceResult raytraceresult = iblockstate.collisionRayTrace(world, blockpos, startVec, endVec);
+//          result.add(raytraceresult);
+//        }
+//
+//        int k1 = 200;
+//
+//        while (k1-- >= 0) {
+//          if (Double.isNaN(startVec.x) || Double.isNaN(startVec.y) || Double.isNaN(startVec.z)) {
+//            return new ArrayList<RayTraceResult>();
+//          }
+//
+//          if (l == i && i1 == j && j1 == k) {
+//            return result;
+//          }
+//
+//          boolean flag2 = true;
+//          boolean flag = true;
+//          boolean flag1 = true;
+//          double d0 = 999.0D;
+//          double d1 = 999.0D;
+//          double d2 = 999.0D;
+//
+//          if (i > l) {
+//            d0 = l + 1.0D;
+//          } else if (i < l) {
+//            d0 = l + 0.0D;
+//          } else {
+//            flag2 = false;
+//          }
+//
+//          if (j > i1) {
+//            d1 = i1 + 1.0D;
+//          } else if (j < i1) {
+//            d1 = i1 + 0.0D;
+//          } else {
+//            flag = false;
+//          }
+//
+//          if (k > j1) {
+//            d2 = j1 + 1.0D;
+//          } else if (k < j1) {
+//            d2 = j1 + 0.0D;
+//          } else {
+//            flag1 = false;
+//          }
+//
+//          double d3 = 999.0D;
+//          double d4 = 999.0D;
+//          double d5 = 999.0D;
+//          double d6 = endVec.x - startVec.x;
+//          double d7 = endVec.y - startVec.y;
+//          double d8 = endVec.z - startVec.z;
+//
+//          if (flag2) {
+//            d3 = (d0 - startVec.x) / d6;
+//          }
+//
+//          if (flag) {
+//            d4 = (d1 - startVec.y) / d7;
+//          }
+//
+//          if (flag1) {
+//            d5 = (d2 - startVec.z) / d8;
+//          }
+//
+//          if (d3 == -0.0D) {
+//            d3 = -1.0E-4D;
+//          }
+//
+//          if (d4 == -0.0D) {
+//            d4 = -1.0E-4D;
+//          }
+//
+//          if (d5 == -0.0D) {
+//            d5 = -1.0E-4D;
+//          }
+//
+//          Direction enumfacing;
+//
+//          if (d3 < d4 && d3 < d5) {
+//            enumfacing = i > l ? Direction.WEST : Direction.EAST;
+//            startVec = new Vec3d(d0, startVec.y + d7 * d3, startVec.z + d8 * d3);
+//          } else if (d4 < d5) {
+//            enumfacing = j > i1 ? Direction.DOWN : Direction.UP;
+//            startVec = new Vec3d(startVec.x + d6 * d4, d1, startVec.z + d8 * d4);
+//          } else {
+//            enumfacing = k > j1 ? Direction.NORTH : Direction.SOUTH;
+//            startVec = new Vec3d(startVec.x + d6 * d5, startVec.y + d7 * d5, d2);
+//          }
+//
+//          l = MathHelper.floor(startVec.x) - (enumfacing == Direction.EAST ? 1 : 0);
+//          i1 = MathHelper.floor(startVec.y) - (enumfacing == Direction.UP ? 1 : 0);
+//          j1 = MathHelper.floor(startVec.z) - (enumfacing == Direction.SOUTH ? 1 : 0);
+//          blockpos = new BlockPos(l, i1, j1);
+//          IBlockState iblockstate1 = world.getBlockState(blockpos);
+//          Block block1 = iblockstate1.getBlock();
+//
+//          if (!ignoreBlockWithoutBoundingBox || iblockstate1.getMaterial() == Material.PORTAL
+//              || iblockstate1.getCollisionBoundingBox(world, blockpos) != Block.NULL_AABB) {
+//            if (block1.canCollideCheck(iblockstate1, includeLiquids)) {
+//              @Nonnull
+//              RayTraceResult raytraceresult1 = iblockstate1.collisionRayTrace(world, blockpos, startVec, endVec);
+//              result.add(raytraceresult1);
+//            }
+//          }
+//        }
+//
+//        return result;
+//      } else {
+//        return result;
+//      }
+//    } else {
+//      return result;
+//    }
+//  }
 
-    List<RayTraceResult> result = new ArrayList<RayTraceResult>();
-
-    if (!Double.isNaN(startVec.x) && !Double.isNaN(startVec.y) && !Double.isNaN(startVec.z)) {
-      if (!Double.isNaN(endVec.x) && !Double.isNaN(endVec.y) && !Double.isNaN(endVec.z)) {
-        int i = MathHelper.floor(endVec.x);
-        int j = MathHelper.floor(endVec.y);
-        int k = MathHelper.floor(endVec.z);
-        int l = MathHelper.floor(startVec.x);
-        int i1 = MathHelper.floor(startVec.y);
-        int j1 = MathHelper.floor(startVec.z);
-        BlockPos blockpos = new BlockPos(l, i1, j1);
-        IBlockState iblockstate = world.getBlockState(blockpos);
-        Block block = iblockstate.getBlock();
-
-        if ((!ignoreBlockWithoutBoundingBox || iblockstate.getCollisionBoundingBox(world, blockpos) != Block.NULL_AABB)
-            && block.canCollideCheck(iblockstate, includeLiquids)) {
-          @Nonnull
-          RayTraceResult raytraceresult = iblockstate.collisionRayTrace(world, blockpos, startVec, endVec);
-          result.add(raytraceresult);
-        }
-
-        int k1 = 200;
-
-        while (k1-- >= 0) {
-          if (Double.isNaN(startVec.x) || Double.isNaN(startVec.y) || Double.isNaN(startVec.z)) {
-            return new ArrayList<RayTraceResult>();
-          }
-
-          if (l == i && i1 == j && j1 == k) {
-            return result;
-          }
-
-          boolean flag2 = true;
-          boolean flag = true;
-          boolean flag1 = true;
-          double d0 = 999.0D;
-          double d1 = 999.0D;
-          double d2 = 999.0D;
-
-          if (i > l) {
-            d0 = l + 1.0D;
-          } else if (i < l) {
-            d0 = l + 0.0D;
-          } else {
-            flag2 = false;
-          }
-
-          if (j > i1) {
-            d1 = i1 + 1.0D;
-          } else if (j < i1) {
-            d1 = i1 + 0.0D;
-          } else {
-            flag = false;
-          }
-
-          if (k > j1) {
-            d2 = j1 + 1.0D;
-          } else if (k < j1) {
-            d2 = j1 + 0.0D;
-          } else {
-            flag1 = false;
-          }
-
-          double d3 = 999.0D;
-          double d4 = 999.0D;
-          double d5 = 999.0D;
-          double d6 = endVec.x - startVec.x;
-          double d7 = endVec.y - startVec.y;
-          double d8 = endVec.z - startVec.z;
-
-          if (flag2) {
-            d3 = (d0 - startVec.x) / d6;
-          }
-
-          if (flag) {
-            d4 = (d1 - startVec.y) / d7;
-          }
-
-          if (flag1) {
-            d5 = (d2 - startVec.z) / d8;
-          }
-
-          if (d3 == -0.0D) {
-            d3 = -1.0E-4D;
-          }
-
-          if (d4 == -0.0D) {
-            d4 = -1.0E-4D;
-          }
-
-          if (d5 == -0.0D) {
-            d5 = -1.0E-4D;
-          }
-
-          EnumFacing enumfacing;
-
-          if (d3 < d4 && d3 < d5) {
-            enumfacing = i > l ? EnumFacing.WEST : EnumFacing.EAST;
-            startVec = new Vec3d(d0, startVec.y + d7 * d3, startVec.z + d8 * d3);
-          } else if (d4 < d5) {
-            enumfacing = j > i1 ? EnumFacing.DOWN : EnumFacing.UP;
-            startVec = new Vec3d(startVec.x + d6 * d4, d1, startVec.z + d8 * d4);
-          } else {
-            enumfacing = k > j1 ? EnumFacing.NORTH : EnumFacing.SOUTH;
-            startVec = new Vec3d(startVec.x + d6 * d5, startVec.y + d7 * d5, d2);
-          }
-
-          l = MathHelper.floor(startVec.x) - (enumfacing == EnumFacing.EAST ? 1 : 0);
-          i1 = MathHelper.floor(startVec.y) - (enumfacing == EnumFacing.UP ? 1 : 0);
-          j1 = MathHelper.floor(startVec.z) - (enumfacing == EnumFacing.SOUTH ? 1 : 0);
-          blockpos = new BlockPos(l, i1, j1);
-          IBlockState iblockstate1 = world.getBlockState(blockpos);
-          Block block1 = iblockstate1.getBlock();
-
-          if (!ignoreBlockWithoutBoundingBox || iblockstate1.getMaterial() == Material.PORTAL
-              || iblockstate1.getCollisionBoundingBox(world, blockpos) != Block.NULL_AABB) {
-            if (block1.canCollideCheck(iblockstate1, includeLiquids)) {
-              @Nonnull
-              RayTraceResult raytraceresult1 = iblockstate1.collisionRayTrace(world, blockpos, startVec, endVec);
-              result.add(raytraceresult1);
-            }
-          }
-        }
-
-        return result;
-      } else {
-        return result;
-      }
-    } else {
-      return result;
-    }
-  }
-
-  public static @Nullable EnumFacing getDirFromOffset(int xOff, int yOff, int zOff) {
+  public static @Nullable Direction getDirFromOffset(int xOff, int yOff, int zOff) {
     if (xOff != 0 && yOff == 0 && zOff == 0) {
-      return xOff < 0 ? EnumFacing.WEST : EnumFacing.EAST;
+      return xOff < 0 ? Direction.WEST : Direction.EAST;
     }
     if (zOff != 0 && yOff == 0 && xOff == 0) {
-      return zOff < 0 ? EnumFacing.NORTH : EnumFacing.SOUTH;
+      return zOff < 0 ? Direction.NORTH : Direction.SOUTH;
     }
     if (yOff != 0 && xOff == 0 && zOff == 0) {
-      return yOff < 0 ? EnumFacing.DOWN : EnumFacing.UP;
+      return yOff < 0 ? Direction.DOWN : Direction.UP;
     }
     return null;
   }
 
-  public static @Nonnull EnumFacing getFacingFromEntity(@Nonnull EntityLivingBase entity) {
-    int heading = MathHelper.floor(entity.rotationYaw * 4.0F / 360.0F + 0.5D) & 3;
+  public static @Nonnull Direction getFacingFromEntity(@Nonnull LivingEntity entity) {
+    int heading = ((int)(entity.getRotationVector().y * 4.0F / 360.0F + 0.5D)) & 3;
     switch (heading) {
     case 0:
-      return EnumFacing.NORTH;
+      return Direction.NORTH;
     case 1:
-      return EnumFacing.EAST;
+      return Direction.EAST;
     case 2:
-      return EnumFacing.SOUTH;
+      return Direction.SOUTH;
     case 3:
     default:
-      return EnumFacing.WEST;
+      return Direction.WEST;
     }
 
   }
@@ -428,19 +394,19 @@ public class Util {
     return (int) (tile.getProgress() * scale);
   }
 
-  public static void writeFacingToNBT(@Nonnull NBTTagCompound nbtRoot, @Nonnull String name, @Nonnull EnumFacing dir) {
+  public static void writeFacingToNBT(@Nonnull CompoundTag nbtRoot, @Nonnull String name, @Nonnull Direction dir) {
     short val = -1;
     val = (short) dir.ordinal();
-    nbtRoot.setShort(name, val);
+    nbtRoot.putShort(name, val);
   }
 
-  public static @Nullable EnumFacing readFacingFromNBT(@Nonnull NBTTagCompound nbtRoot, @Nonnull String name) {
+  public static @Nullable Direction readFacingFromNBT(@Nonnull CompoundTag nbtRoot, @Nonnull String name) {
     short val = -1;
-    if (nbtRoot.hasKey(name)) {
+    if (nbtRoot.contains(name)) {
       val = nbtRoot.getShort(name);
     }
     if (val > 0) {
-      return EnumFacing.values()[val];
+      return Direction.values()[val];
     }
     return null;
   }

@@ -4,29 +4,23 @@ import java.util.List;
 
 import javax.annotation.Nonnull;
 
-import com.enderio.core.common.Handlers.Handler;
-import com.enderio.core.common.config.ConfigHandler;
 import com.enderio.core.common.util.NullHelper;
 import com.enderio.core.common.util.stackable.Things;
 import com.google.common.collect.Lists;
 
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockBeetroot;
-import net.minecraft.block.BlockCrops;
-import net.minecraft.block.BlockNetherWart;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.init.Blocks;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.EnumHand;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.*;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickBlock;
-import net.minecraftforge.event.world.BlockEvent.HarvestDropsEvent;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.registry.ForgeRegistries;
-import net.minecraftforge.oredict.OreDictionary;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.registries.ForgeRegistries;
 
-@Handler
+@Mod.EventBusSubscriber
 public class RightClickCropHandler {
 
   public static interface IPlantInfo {
@@ -34,10 +28,10 @@ public class RightClickCropHandler {
     ItemStack getSeed();
 
     @Nonnull
-    IBlockState getGrownState();
+    BlockState getGrownState();
 
     @Nonnull
-    IBlockState getResetState();
+    BlockState getResetState();
 
     boolean init(@Nonnull String source);
   }
@@ -50,8 +44,8 @@ public class RightClickCropHandler {
     public boolean optional;
 
     private transient @Nonnull Things seedStack = new Things();
-    private transient @Nonnull IBlockState grownState = Blocks.AIR.getDefaultState();
-    private transient @Nonnull IBlockState resetState = Blocks.AIR.getDefaultState();
+    private transient @Nonnull BlockState grownState = Blocks.AIR.defaultBlockState();
+    private transient @Nonnull BlockState resetState = Blocks.AIR.defaultBlockState();
 
     public LegacyPlantInfo() { // for json de-serialization
     }
@@ -94,24 +88,25 @@ public class RightClickCropHandler {
           throw new RuntimeException("invalid block specifier '" + block + "' " + source);
         }
       }
-      if (mcblock instanceof BlockBeetroot) { // BlockBeetroot extends BlockCrops, so it needs to be checked first
+      if (mcblock instanceof BeetrootBlock) { // extends CropBlock, so it needs to be checked first
         meta = 3;
         resetMeta = 0;
-        grownState = mcblock.getDefaultState().withProperty(BlockBeetroot.BEETROOT_AGE, 3);
-        resetState = mcblock.getDefaultState().withProperty(BlockBeetroot.BEETROOT_AGE, 0);
-      } else if (mcblock instanceof BlockCrops) {
-        meta = ((BlockCrops) mcblock).getMaxAge();
+        grownState = mcblock.defaultBlockState().setValue(BeetrootBlock.AGE, 3);
+        resetState = mcblock.defaultBlockState().setValue(BeetrootBlock.AGE, 0);
+      } else if (mcblock instanceof CropBlock) {
+        meta = ((CropBlock) mcblock).getMaxAge();
         resetMeta = 0;
-        grownState = mcblock.getDefaultState().withProperty(BlockCrops.AGE, ((BlockCrops) mcblock).getMaxAge());
-        resetState = mcblock.getDefaultState().withProperty(BlockCrops.AGE, 0);
-      } else if (mcblock instanceof BlockNetherWart) {
+        grownState = mcblock.defaultBlockState().setValue(CropBlock.AGE, ((CropBlock) mcblock).getMaxAge());
+        resetState = mcblock.defaultBlockState().setValue(CropBlock.AGE, 0);
+      } else if (mcblock instanceof NetherWartBlock) {
         meta = 3;
         resetMeta = 0;
-        grownState = mcblock.getDefaultState().withProperty(BlockNetherWart.AGE, 3);
-        resetState = mcblock.getDefaultState().withProperty(BlockNetherWart.AGE, 0);
+        grownState = mcblock.defaultBlockState().setValue(NetherWartBlock.AGE, 3);
+        resetState = mcblock.defaultBlockState().setValue(NetherWartBlock.AGE, 0);
       } else {
-        grownState = mcblock.getStateFromMeta(meta);
-        resetState = mcblock.getStateFromMeta(resetMeta);
+        // TODO
+//        grownState = mcblock.getStateFromMeta(meta);
+//        resetState = mcblock.getStateFromMeta(resetMeta);
       }
       return true;
     }
@@ -124,13 +119,13 @@ public class RightClickCropHandler {
 
     @Override
     @Nonnull
-    public IBlockState getGrownState() {
+    public BlockState getGrownState() {
       return grownState;
     }
 
     @Override
     @Nonnull
-    public IBlockState getResetState() {
+    public BlockState getResetState() {
       return resetState;
     }
   }
@@ -150,23 +145,26 @@ public class RightClickCropHandler {
 
   @SubscribeEvent
   public void handleCropRightClick(RightClickBlock event) {
-    if (!ConfigHandler.allowCropRC) {
+    var enabled = true; // ConfigHandler.allowCropRC
+    if (!enabled) {
       return;
     }
 
-    if (event.getEntityPlayer().getHeldItemMainhand().isEmpty() || !event.getEntityPlayer().isSneaking()) {
+    if (event.getEntity().getMainHandItem().isEmpty() || !event.getEntity().isSteppingCarefully()) {
       BlockPos pos = event.getPos();
-      IBlockState blockState = event.getWorld().getBlockState(pos);
+      BlockState blockState = event.getLevel().getBlockState(pos);
       for (IPlantInfo info : plants) {
         if (info.getGrownState() == blockState) {
-          if (event.getWorld().isRemote) {
-            event.getEntityPlayer().swingArm(EnumHand.MAIN_HAND);
+          if (event.getLevel().isClientSide) {
+            event.getEntity().swing(InteractionHand.MAIN_HAND);
           } else {
             currentPlant = info;
-            blockState.getBlock().dropBlockAsItem(NullHelper.notnullF(event.getWorld(), "RightClickBlock.getWorld()"), pos, blockState, 0);
+            event.getLevel().addFreshEntity(
+                    new ItemEntity(event.getLevel(), pos.getX(), pos.getY(), pos.getZ(), new ItemStack(blockState.getBlock().asItem(), 1))
+            );
             currentPlant = null;
-            IBlockState newBS = info.getResetState();
-            event.getWorld().setBlockState(pos, newBS, 3);
+            BlockState newBS = info.getResetState();
+            event.getLevel().setBlock(pos, newBS, 3);
             event.setCanceled(true);
           }
           break;
@@ -175,20 +173,21 @@ public class RightClickCropHandler {
     }
   }
 
-  @SubscribeEvent
-  public void onHarvestDrop(HarvestDropsEvent event) {
-    if (currentPlant != null) {
-      for (int i = 0; i < event.getDrops().size(); i++) {
-        ItemStack stack = event.getDrops().get(i);
-        if (stack.getItem() == currentPlant.getSeed().getItem()
-            && (currentPlant.getSeed().getItemDamage() == OreDictionary.WILDCARD_VALUE || stack.getItemDamage() == currentPlant.getSeed().getItemDamage())) {
-          stack.shrink(1);
-          if (stack.isEmpty()) {
-            event.getDrops().remove(i);
-          }
-          break;
-        }
-      }
-    }
-  }
+  // TODO
+//  @SubscribeEvent
+//  public void onHarvestDrop(BlockDroppedItem event) {
+//    if (currentPlant != null) {
+//      for (int i = 0; i < event.getDrops().size(); i++) {
+//        ItemStack stack = event.getDrops().get(i);
+//        if (stack.getItem() == currentPlant.getSeed().getItem()
+//            && (currentPlant.getSeed().getItemDamage() == OreDictionary.WILDCARD_VALUE || stack.getItemDamage() == currentPlant.getSeed().getItemDamage())) {
+//          stack.shrink(1);
+//          if (stack.isEmpty()) {
+//            event.getDrops().remove(i);
+//          }
+//          break;
+//        }
+//      }
+//    }
+//  }
 }

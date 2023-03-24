@@ -14,20 +14,16 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.NonNullList;
 import org.apache.commons.lang3.Validate;
-
-import net.minecraft.util.BlockRenderLayer;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.math.BlockPos;
 
 public class NNList<E> extends NonNullList<E> {
 
-  public static final @Nonnull NNList<EnumFacing> FACING = NNList.of(EnumFacing.class);
+  public static final @Nonnull NNList<Direction> FACING = NNList.of(Direction.class);
 
-  public static final @Nonnull NNList<EnumFacing> FACING_HORIZONTAL = new NNList<EnumFacing>(EnumFacing.HORIZONTALS);
-
-  public static final @Nonnull NNList<BlockRenderLayer> RENDER_LAYER = NNList.of(BlockRenderLayer.class);
+  public static final @Nonnull NNList<Direction> FACING_HORIZONTAL = new NNList<Direction>(Direction.Plane.HORIZONTAL.iterator());
 
   public static final @Nonnull NNList<BlockPos> SHELL = new NNList<>();
   static {
@@ -52,10 +48,10 @@ public class NNList<E> extends NonNullList<E> {
     addAll(fillWith);
   }
 
-  public NNList(int size, @Nonnull E fillWith) {
+  public NNList(Iterator<E> fillWith) {
     this();
-    for (int i = 0; i < size; i++) {
-      add(fillWith);
+    while (fillWith.hasNext()) {
+      add(fillWith.next());
     }
   }
 

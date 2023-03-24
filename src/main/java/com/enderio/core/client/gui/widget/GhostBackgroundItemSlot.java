@@ -2,18 +2,16 @@ package com.enderio.core.client.gui.widget;
 
 import java.util.Collections;
 import java.util.List;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.enderio.core.common.util.NNList;
-
-import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
-import net.minecraft.inventory.Slot;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.NonNullList;
+import net.minecraft.core.NonNullList;
+import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 
 public class GhostBackgroundItemSlot extends GhostSlot {
 
@@ -48,11 +46,11 @@ public class GhostBackgroundItemSlot extends GhostSlot {
   }
 
   public GhostBackgroundItemSlot(@Nonnull ItemStack stack, @Nonnull Slot parent) {
-    this(stack, null, parent, parent.xPos, parent.yPos);
+    this(stack, null, parent, parent.x, parent.y);
   }
 
   public GhostBackgroundItemSlot(@Nonnull List<ItemStack> stacks, @Nonnull Slot parent) {
-    this(ItemStack.EMPTY, stacks, parent, parent.xPos, parent.yPos);
+    this(ItemStack.EMPTY, stacks, parent, parent.x, parent.y);
   }
 
   public GhostBackgroundItemSlot(@Nonnull Item item, int x, int y) {
@@ -72,15 +70,15 @@ public class GhostBackgroundItemSlot extends GhostSlot {
   }
 
   @Override
-  public boolean isMouseOver(int mx, int my) {
+  public boolean isMouseOver(double mx, double my) {
     return false;
   }
 
   @Override
   public @Nonnull ItemStack getStack() {
     final NonNullList<ItemStack> stacks2 = stacks;
-    if (stacks2 != null && Minecraft.getSystemTime() - lastSwitch > 1000L) {
-      lastSwitch = Minecraft.getSystemTime();
+    if (stacks2 != null && System.currentTimeMillis() - lastSwitch > 1000L) {
+      lastSwitch = System.currentTimeMillis();
       if (++idx >= stacks2.size()) {
         idx = 0;
         Collections.shuffle(stacks2);
@@ -97,19 +95,19 @@ public class GhostBackgroundItemSlot extends GhostSlot {
   @Override
   public boolean isVisible() {
     final Slot parent2 = parent;
-    return parent2 != null ? parent2.xPos >= 0 && parent2.yPos >= 0 && !parent2.getHasStack() && super.isVisible() : super.isVisible();
+    return parent2 != null ? parent2.x >= 0 && parent2.y >= 0 && !parent2.hasItem() && super.isVisible() : super.isVisible();
   }
 
   @Override
   public int getX() {
     final Slot parent2 = parent;
-    return parent2 != null ? parent2.xPos : super.getX();
+    return parent2 != null ? parent2.x : super.getX();
   }
 
   @Override
   public int getY() {
     final Slot parent2 = parent;
-    return parent2 != null ? parent2.yPos : super.getY();
+    return parent2 != null ? parent2.y : super.getY();
   }
 
 }

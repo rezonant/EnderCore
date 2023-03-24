@@ -2,13 +2,12 @@ package com.enderio.core.common.util.stackable;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
 import com.enderio.core.common.util.NNList;
-
-import net.minecraft.block.Block;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
+import net.minecraftforge.registries.ForgeRegistries;
 
 class ResourceThing implements IThing {
 
@@ -21,12 +20,12 @@ class ResourceThing implements IThing {
   @Override
   public @Nonnull NNList<IThing> bake() {
     // this ugly thing seems to be what Forge wants you to use
-    if (net.minecraft.block.Block.REGISTRY.containsKey(resourceLocation)) {
-      Block block = net.minecraft.block.Block.REGISTRY.getObject(resourceLocation);
+    if (ForgeRegistries.BLOCKS.containsKey(resourceLocation)) {
+      Block block = ForgeRegistries.BLOCKS.getValue(resourceLocation);
       return new BlockThing(block).bake();
     }
     // this ugly thing seems to be what Forge wants you to use
-    Item item = net.minecraft.item.Item.REGISTRY.getObject(resourceLocation);
+    Item item = ForgeRegistries.ITEMS.getValue(resourceLocation);
     if (item != null) {
       return new ItemThing(item).bake();
     }

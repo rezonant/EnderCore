@@ -4,8 +4,8 @@ import javax.annotation.Nonnull;
 
 import com.enderio.core.common.util.Scheduler;
 
-import net.minecraft.world.World;
-import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraft.world.level.Level;
+import net.minecraftforge.fml.event.lifecycle.InterModEnqueueEvent;
 
 public class CommonProxy {
   protected Scheduler scheduler;
@@ -22,7 +22,7 @@ public class CommonProxy {
     return scheduler = new Scheduler(true);
   }
 
-  public World getClientWorld() {
+  public Level getClientWorld() {
     return null;
   }
 
@@ -37,7 +37,7 @@ public class CommonProxy {
     throw new RuntimeException(sb.toString());
   }
 
-  public void onPreInit(@Nonnull FMLPreInitializationEvent event) {
+  public void onInterModEnqueue(@Nonnull InterModEnqueueEvent event) {
   }
 
 }

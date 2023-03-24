@@ -6,11 +6,11 @@ import javax.annotation.Nullable;
 import com.enderio.core.common.util.NNList;
 import com.enderio.core.common.util.NullHelper;
 
-import net.minecraft.block.Block;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.oredict.OreDictionary;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
+import net.minecraftforge.registries.ForgeRegistries;
 
 class StringThing implements IThing {
 
@@ -60,47 +60,44 @@ class StringThing implements IThing {
           ident = "null";
         }
         if (split.length >= 3) {
-          if ("*".equals(split[2])) {
-            meta = OreDictionary.WILDCARD_VALUE;
-          } else {
-            try {
-              meta = Integer.parseInt(split[2]);
-            } catch (NumberFormatException e) {
-              return NNList.emptyList();
-            }
+          try {
+            meta = Integer.parseInt(split[2]);
+          } catch (NumberFormatException e) {
+            return NNList.emptyList();
           }
         }
       }
     }
+
     ResourceLocation resourceLocation = new ResourceLocation(mod, ident);
     if (meta < 0) {
       // this ugly thing seems to be what Forge wants you to use
-      if (allowBlock && net.minecraft.block.Block.REGISTRY.containsKey(resourceLocation)) {
-        Block block = net.minecraft.block.Block.REGISTRY.getObject(resourceLocation);
+      if (allowBlock && ForgeRegistries.BLOCKS.containsKey(resourceLocation)) {
+        Block block = ForgeRegistries.BLOCKS.getValue(resourceLocation);
         return new BlockThing(block).bake();
       }
       // this ugly thing seems to be what Forge wants you to use
-      if (allowItem && net.minecraft.item.Item.REGISTRY.containsKey(resourceLocation)) {
-        Item item = net.minecraft.item.Item.REGISTRY.getObject(resourceLocation);
+      if (allowItem && ForgeRegistries.ITEMS.containsKey(resourceLocation)) {
+        Item item = ForgeRegistries.ITEMS.getValue(resourceLocation);
         if (item != null) {
           return new ItemThing(item).bake();
         }
       }
-      if (allowOreDict) {
-        return new OreThing(ident).bake();
-      }
+//      if (allowOreDict) {
+//        return new OreThing(ident).bake();
+//      }
     } else {
       // this ugly thing seems to be what Forge wants you to use
-      if (allowItem && net.minecraft.item.Item.REGISTRY.containsKey(resourceLocation)) {
-        Item item = net.minecraft.item.Item.REGISTRY.getObject(resourceLocation);
+      if (allowItem && ForgeRegistries.ITEMS.containsKey(resourceLocation)) {
+        Item item = ForgeRegistries.ITEMS.getValue(resourceLocation);
         if (item != null) {
-          return new ItemStackThing(new ItemStack(item, 1, meta)).bake();
+          return new ItemStackThing(new ItemStack(item, 1)).bake();
         }
       }
       // this ugly thing seems to be what Forge wants you to use
-      if (allowBlock && net.minecraft.block.Block.REGISTRY.containsKey(resourceLocation)) {
-        Block block = net.minecraft.block.Block.REGISTRY.getObject(resourceLocation);
-        return new ItemStackThing(new ItemStack(block, 1, meta)).bake();
+      if (allowBlock && ForgeRegistries.BLOCKS.containsKey(resourceLocation)) {
+        Block block = ForgeRegistries.BLOCKS.getValue(resourceLocation);
+        return new ItemStackThing(new ItemStack(block, 1)).bake();
       }
     }
     return NNList.emptyList();

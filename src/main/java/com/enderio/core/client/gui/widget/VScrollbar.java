@@ -4,7 +4,12 @@ import java.awt.Rectangle;
 
 import javax.annotation.Nonnull;
 
-import org.lwjgl.opengl.GL11;
+import com.mojang.blaze3d.platform.GlStateManager;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.blaze3d.vertex.VertexFormat;
 
 import com.enderio.core.api.client.gui.IGuiScreen;
 import com.enderio.core.api.client.gui.IHideable;
@@ -12,10 +17,6 @@ import com.enderio.core.api.client.render.IWidgetIcon;
 import com.enderio.core.client.render.EnderWidget;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.BufferBuilder;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 
 public class VScrollbar implements IHideable {
 
@@ -104,21 +105,25 @@ public class VScrollbar implements IHideable {
       }
 
       if (scrollDir != 0) {
-        long time = Minecraft.getSystemTime();
+        long time = System.currentTimeMillis();
+
         if (timeNextScroll - time <= 0) {
           timeNextScroll = time + 100;
           scrollBy(scrollDir);
         }
       }
 
-      Minecraft.getMinecraft().getTextureManager().bindTexture(EnderWidget.TEXTURE);
-      GL11.glPushAttrib(GL11.GL_ENABLE_BIT); // TODO waiting on forge for a bug fix of pushAtrrib
-      GlStateManager.enableBlend();
-      GlStateManager.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-      GlStateManager.color(1, 1, 1);
+      Minecraft.getInstance().getTextureManager().getTexture(EnderWidget.TEXTURE).bind();
 
-      final BufferBuilder renderer = Tessellator.getInstance().getBuffer();
-      renderer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_TEX);
+
+      //GL11.glPushAttrib(GL11.GL_ENABLE_BIT); // TODO waiting on forge for a bug fix of pushAtrrib
+
+      RenderSystem.enableBlend();
+      RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
+      RenderSystem.setShaderColor(1, 1, 1, 1);
+
+      final BufferBuilder renderer = Tesselator.getInstance().getBuilder();
+      renderer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
 
       iconUp.getMap().render(iconUp, btnUp.x, btnUp.y, false);
       iconDown.getMap().render(iconDown, btnDown.x, btnDown.y, false);
@@ -136,12 +141,13 @@ public class VScrollbar implements IHideable {
         iconThumb.getMap().render(iconThumb, thumbArea.x, thumbPos, 100, false);
       }
 
-      Tessellator.getInstance().draw();
-      GL11.glPopAttrib(); // TODO waiting on forge for a bugfix
+      Tesselator.getInstance().end();
+
+      //GL11.glPopAttrib(); // TODO waiting on forge for a bugfix
     }
   }
 
-  public boolean mouseClicked(int mX, int mY, int button) {
+  public boolean mouseClicked(double mX, double mY, int button) {
     if (button == 0) {
       if (getScrollMax() > 0 && thumbArea.contains(mX, mY)) {
         int thumbPos = getThumbPosition();
@@ -156,35 +162,35 @@ public class VScrollbar implements IHideable {
 
       scrollDir = (pressedDown ? 1 : 0) - (pressedUp ? 1 : 0);
       if (scrollDir != 0) {
-        timeNextScroll = Minecraft.getSystemTime() + 200;
+        timeNextScroll = System.currentTimeMillis() + 200;
         scrollBy(scrollDir);
       }
     }
     return isDragActive();
   }
 
-  public boolean mouseClickMove(int mX, int mY, int button, long time) {
+  public boolean mouseClickMove(double mX, double mY, int button, double dragX, double dragY) {
     if (pressedThumb) {
-      int pos = mY - (thumbArea.y + EnderWidget.VSCROLL_THUMB_OFF.height / 2);
+      double pos = mY - (thumbArea.y + EnderWidget.VSCROLL_THUMB_OFF.height / 2);
       int len = thumbArea.height - EnderWidget.VSCROLL_THUMB_OFF.height;
       if (len > 0) {
-        setScrollPos(Math.round(pos * (float) getScrollMax() / len));
+        setScrollPos((int)Math.round(pos * getScrollMax() / (double)len));
       }
       return true;
     }
     return false;
   }
 
-  public void mouseMovedOrUp(int mX, int mY, int button) {
+  public void mouseMovedOrUp(double mX, double mY, int button) {
     pressedUp = false;
     pressedDown = false;
     pressedThumb = false;
     scrollDir = 0;
   }
 
-  public void mouseWheel(int mX, int mY, int delta) {
+  public void mouseScrolled(double mX, double mY, double delta) {
     if (!isDragActive()) {
-      scrollBy(-Integer.signum(delta));
+      scrollBy(-Integer.signum((int)Math.round(delta)));
     }
   }
 

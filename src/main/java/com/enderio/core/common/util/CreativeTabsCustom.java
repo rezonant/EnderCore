@@ -2,11 +2,11 @@ package com.enderio.core.common.util;
 
 import javax.annotation.Nonnull;
 
-import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 
-public class CreativeTabsCustom extends CreativeTabs {
+public class CreativeTabsCustom extends CreativeModeTab {
 
   private @Nonnull ItemStack displayStack = ItemStack.EMPTY;
 
@@ -19,17 +19,7 @@ public class CreativeTabsCustom extends CreativeTabs {
    *          Item to display
    */
   public CreativeTabsCustom setDisplay(@Nonnull Item item) {
-    return setDisplay(item, 0);
-  }
-
-  /**
-   * @param item
-   *          Item to display
-   * @param damage
-   *          Damage of item to display
-   */
-  public CreativeTabsCustom setDisplay(@Nonnull Item item, int damage) {
-    return setDisplay(new ItemStack(item, 1, damage));
+    return setDisplay(new ItemStack(item, 1));
   }
 
   /**
@@ -42,7 +32,7 @@ public class CreativeTabsCustom extends CreativeTabs {
   }
 
   @Override
-  public @Nonnull ItemStack getTabIconItem() {
+  public @Nonnull ItemStack makeIcon() {
     return displayStack;
   }
 }
