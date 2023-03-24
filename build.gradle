@@ -3,7 +3,7 @@ buildscript {
         jcenter()
         mavenCentral()
         maven { url = 'https://maven.minecraftforge.net' }
-        maven { url = 'https://maven.parchmentmc.org' } //Parchment (Name mappings)
+        maven { url = 'https://maven.parchmentmc.org' }
     }
 
     dependencies {
@@ -52,7 +52,7 @@ dependencies {
 }
 
 minecraft {
-    mappings channel: 'parchment', version: "2022.08.14-1.19.2"
+    mappings channel: mappings_channel, version: mappings_version
     accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
 //    replace "@VERSION@", project.version
